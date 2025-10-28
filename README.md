@@ -1,8 +1,8 @@
 # Chibi Izumi for TypeScript (DITS)
 
-[![CI](https://github.com/7mind/dits/actions/workflows/ci.yml/badge.svg)](https://github.com/7mind/dits/actions/workflows/ci.yml)
+[![CI](https://github.com/7mind/izumi-chibi-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/7mind/izumi-chibi-ts/actions/workflows/ci.yml)
 [![npm version](https://badge.fury.io/js/dits.svg)](https://www.npmjs.com/package/dits)
-[![codecov](https://codecov.io/gh/7mind/dits/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/dits)
+[![codecov](https://codecov.io/gh/7mind/izumi-chibi-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/dits)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A TypeScript re-implementation of some core concepts from Scala's [Izumi Project](https://github.com/7mind/izumi),
