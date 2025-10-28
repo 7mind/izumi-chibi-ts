@@ -3,47 +3,30 @@ import 'reflect-metadata';
 /**
  * Decorator to mark a class as injectable.
  *
- * IMPORTANT: TypeScript/SWC only emits parameter type metadata when there's
- * a parameter decorator. You MUST use @Inject() on at least the first parameter
- * for automatic dependency injection to work.
+ * With SWC or Babel (configured with decorator metadata support), this is all you need!
+ * The transformer will emit parameter type metadata automatically.
  *
  * Example:
  *   @Injectable()
  *   class MyService {
- *     constructor(@Inject() db: Database) {}
+ *     constructor(db: Database, config: Config) {}
  *   }
  *
- * Alternatively, you can use @Id() which also triggers metadata emission:
+ * For named dependencies, use @Id:
  *   @Injectable()
  *   class MyService {
  *     constructor(@Id('primary') db: Database) {}
  *   }
+ *
+ * Note: Vanilla TypeScript's tsc requires parameter decorators to emit metadata.
+ * If you're not using SWC/Babel, you'll need to add at least one parameter decorator
+ * (like @Id) to trigger metadata emission.
  */
 export function Injectable() {
   return function (constructor: any) {
     // Store a marker so we know this class is injectable
     Reflect.defineMetadata('dits:injectable', true, constructor);
     return constructor;
-  };
-}
-
-/**
- * Parameter decorator that triggers metadata emission.
- * Use this on at least one constructor parameter to enable automatic dependency injection.
- *
- * Example:
- *   class MyService {
- *     constructor(@Inject() db: Database, @Inject() config: Config) {}
- *   }
- */
-export function Inject() {
-  return function (
-    target: Object,
-    propertyKey: string | symbol | undefined,
-    parameterIndex: number,
-  ) {
-    // This decorator doesn't need to do anything - its presence triggers
-    // TypeScript/SWC to emit design:paramtypes metadata
   };
 }
 

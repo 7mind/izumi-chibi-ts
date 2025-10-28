@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { Functoid, DIKey, Injector, ModuleDef, Injectable, Inject } from '../src/index.js';
+import { Functoid, DIKey, Injector, ModuleDef, Injectable } from '../src/index.js';
 
 // Test classes
 @Injectable()
 class Config {
-  constructor(@Inject() public readonly value: string = 'default') {}
+  constructor(public readonly value: string = 'default') {}
 }
 
 @Injectable()
 class Database {
-  constructor(@Inject() public readonly config: Config) {}
+  constructor(public readonly config: Config) {}
 }
 
 describe('Functoid', () => {
@@ -70,7 +70,7 @@ describe('Functoid', () => {
   it('should work with ModuleDef factory bindings', () => {
     @Injectable()
     class ComputedValue {
-      constructor(@Inject() public readonly value: number) {}
+      constructor(public readonly value: number) {}
     }
 
     const module = new ModuleDef()

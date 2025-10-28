@@ -44,17 +44,26 @@ Make sure to enable the following in your `tsconfig.json`:
 }
 ```
 
+**Important:** For best experience, use a transformer like [SWC](https://swc.rs/) or [Babel](https://babeljs.io/) that emits decorator metadata. With SWC (which DITS uses in tests), you don't need `@Inject()` on constructor parameters - just `@Injectable()` on the class is enough!
+
 ## Quick Start
 
 ```typescript
 import 'reflect-metadata';
-import { Injector, ModuleDef, DIKey, Id } from 'dits';
+import { Injectable, Injector, ModuleDef, Id } from 'dits';
 
-// Define your classes
-class Database {
-  constructor(public readonly connectionString: string) {}
+// Define your classes with @Injectable decorator
+@Injectable()
+class Config {
+  constructor(public readonly env: string) {}
 }
 
+@Injectable()
+class Database {
+  constructor(public readonly config: Config) {}
+}
+
+@Injectable()
 class UserService {
   constructor(
     public readonly db: Database,
@@ -64,9 +73,9 @@ class UserService {
 
 // Define module with bindings
 const module = new ModuleDef()
-  .make(Database).fromFactory((connStr: string) => new Database(connStr))
+  .make(Config).fromValue(new Config('production'))
+  .make(Database).fromSelf()
   .make(String).named('app-name').fromValue('MyApp')
-  .make(String).fromValue('postgresql://localhost/mydb')
   .make(UserService).fromSelf();
 
 // Create injector and produce instances
@@ -74,7 +83,7 @@ const injector = new Injector();
 const userService = injector.produceByType(module, UserService);
 
 console.log(userService.appName); // 'MyApp'
-console.log(userService.db.connectionString); // 'postgresql://localhost/mydb'
+console.log(userService.db.config.env); // 'production'
 ```
 
 ## Core Concepts
@@ -84,6 +93,16 @@ console.log(userService.db.connectionString); // 'postgresql://localhost/mydb'
 ModuleDef provides a fluent API for declaring how to create instances:
 
 ```typescript
+@Injectable()
+class Config {
+  constructor(public readonly logLevel: string) {}
+}
+
+@Injectable()
+class Logger {
+  constructor(public readonly config: Config) {}
+}
+
 const module = new ModuleDef()
   // Bind to a value
   .make(Config).fromValue(new Config('production'))
@@ -94,10 +113,12 @@ const module = new ModuleDef()
   // Bind using the type itself
   .make(UserService).fromSelf()
 
-  // Bind using a factory
-  .make(Logger).fromFactory((config: Config) => {
-    return new Logger(config.logLevel);
-  })
+  // Bind using a factory (manual dependencies)
+  .make(Logger).fromFactory(
+    Functoid.fromFunction((config: Config) => {
+      return new Logger(config);
+    }).withTypes([Config])
+  )
 
   // Create an alias
   .make(IDatabase).fromAlias(PostgresDatabase);
@@ -108,6 +129,7 @@ const module = new ModuleDef()
 Use the `@Id` decorator to distinguish multiple bindings of the same type:
 
 ```typescript
+@Injectable()
 class Service {
   constructor(
     @Id('primary') public readonly primaryDb: Database,
@@ -120,6 +142,8 @@ const module = new ModuleDef()
   .make(Database).named('replica').fromValue(replicaDb)
   .make(Service).fromSelf();
 ```
+
+**Note:** Unlike Scala's distage or Python's izumi-chibi-py, vanilla TypeScript requires parameter decorators to emit metadata. However, when using **SWC** or **Babel** with decorator metadata support, you only need `@Injectable()` on the class - no additional decorators needed! If you're using vanilla `tsc`, you'll need at least one parameter decorator (like `@Id`) to trigger metadata emission.
 
 ### Set Bindings
 

@@ -6,7 +6,6 @@ import {
   MissingDependencyError,
   CircularDependencyError,
   Injectable,
-  Inject,
   Functoid,
 } from '../src/index.js';
 
@@ -52,7 +51,7 @@ describe('Error Handling', () => {
 
     @Injectable()
     class DependsOnMissing {
-      constructor(@Inject() public readonly missing: MissingService) {}
+      constructor(public readonly missing: MissingService) {}
     }
 
     const module = new ModuleDef()
@@ -74,7 +73,7 @@ describe('Error Handling', () => {
 
     @Injectable()
     class DependsOnMissing {
-      constructor(@Inject() public readonly missing: MissingService) {}
+      constructor(public readonly missing: MissingService) {}
     }
 
     const module = new ModuleDef()
@@ -138,7 +137,7 @@ describe('Error Handling', () => {
 
     @Injectable()
     class NeedsNamedDep {
-      constructor(@Inject() public readonly dep: MissingService) {}
+      constructor(public readonly dep: MissingService) {}
     }
 
     const module = new ModuleDef()

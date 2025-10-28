@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Id, Injectable, Inject } from '../src/index.js';
+import { Injector, ModuleDef, DIKey, Id, Injectable } from '../src/index.js';
 
 // Test classes
 @Injectable()
@@ -9,12 +9,12 @@ class Config {
 
 @Injectable()
 class Database {
-  constructor(@Inject() public readonly config: Config) {}
+  constructor(public readonly config: Config) {}
 }
 
 @Injectable()
 class UserService {
-  constructor(@Inject() public readonly db: Database, @Inject() public readonly config: Config) {}
+  constructor(public readonly db: Database, public readonly config: Config) {}
 }
 
 @Injectable()
@@ -27,8 +27,8 @@ class Logger {
 @Injectable()
 class Service {
   constructor(
-    @Inject() public readonly logger: Logger,
-    @Inject() @Id('primary') public readonly db: Database,
+    public readonly logger: Logger,
+    @Id('primary') public readonly db: Database,
   ) {}
 }
 

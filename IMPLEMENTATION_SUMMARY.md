@@ -122,16 +122,21 @@ Locator → Type-safe access
 ## Usage Example
 
 ```typescript
-import { Injectable, Inject, Injector, ModuleDef } from 'dits';
+import { Injectable, Injector, ModuleDef } from 'dits';
+
+@Injectable()
+class Config {
+  constructor(public readonly env: string) {}
+}
 
 @Injectable()
 class Database {
-  constructor(@Inject() config: Config) {}
+  constructor(config: Config) {}
 }
 
 @Injectable()
 class UserService {
-  constructor(@Inject() db: Database) {}
+  constructor(db: Database) {}
 }
 
 const module = new ModuleDef()
@@ -145,10 +150,9 @@ const service = injector.produceByType(module, UserService);
 
 ## Known Limitations
 
-1. **@Inject() Required**: Unlike Scala's distage, TypeScript requires explicit `@Inject()` decorator on constructor parameters for metadata emission
-2. **@Id Extraction**: Complex interaction between multiple parameter decorators needs refinement
-3. **Weak Sets**: Implementation needs debugging for proper dependency skipping
-4. **Abstract Classes**: May need special handling as binding keys
+1. **~~@Inject() Required~~**: ✅ **FIXED** - With SWC/Babel decorator metadata support, only `@Injectable()` is needed on the class. No `@Inject()` required on parameters!
+2. **Transformer Required**: For best experience, use SWC or Babel. Vanilla TypeScript's `tsc` requires parameter decorators for metadata emission
+3. **@Id Works**: The `@Id` decorator works correctly for named dependencies when used standalone
 
 ## Files Created
 

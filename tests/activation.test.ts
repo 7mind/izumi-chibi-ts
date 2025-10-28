@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Injectable, Inject } from '../src/index.js';
+import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Injectable } from '../src/index.js';
 
 // Test classes
 @Injectable()
@@ -30,7 +30,7 @@ class PushService extends MessageService {
 
 @Injectable()
 class NotificationManager {
-  constructor(@Inject() public readonly service: MessageService) {}
+  constructor(public readonly service: MessageService) {}
 }
 
 describe('Axis Tagging and Activation', () => {

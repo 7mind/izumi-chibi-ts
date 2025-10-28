@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Injectable, Inject } from '../src/index.js';
+import { Injector, ModuleDef, DIKey, Injectable } from '../src/index.js';
 
 // Test classes
 interface Plugin {
@@ -87,7 +87,7 @@ describe('Set Bindings', () => {
     @Injectable()
     class PluginWithDependency implements Plugin {
       name = 'dependent';
-      constructor(@Inject() public readonly dep: DependencyThatDoesNotExist) {}
+      constructor(public readonly dep: DependencyThatDoesNotExist) {}
     }
 
     const module = new ModuleDef()

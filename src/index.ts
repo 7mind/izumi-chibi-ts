@@ -27,7 +27,7 @@ export { ModuleDef, BindingBuilder, SetBindingBuilder } from './dsl/ModuleDef.js
 // Model
 export { DIKey, ID_METADATA_KEY, PARAM_IDS_METADATA_KEY } from './model/DIKey.js';
 export { Id, getParameterId, getAllParameterIds } from './model/Id.js';
-export { Injectable, Inject } from './model/Injectable.js';
+export { Injectable } from './model/Injectable.js';
 export { Axis, AxisPoint, Activation, BindingTags } from './model/Activation.js';
 export { BindingKind, Bindings } from './model/Binding.js';
 export type {
