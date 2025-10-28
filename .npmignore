@@ -1,0 +1,40 @@
+# Test files
+tests/
+*.test.ts
+*.spec.ts
+coverage/
+
+# Build config
+tsconfig.json
+vitest.config.ts
+
+# Development
+.direnv/
+.envrc
+flake.nix
+flake.lock
+node_modules/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Documentation (keep README.md)
+IMPLEMENTATION_SUMMARY.md

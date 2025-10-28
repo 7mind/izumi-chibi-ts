@@ -1,0 +1,55 @@
+{
+  "name": "dits",
+  "version": "0.1.0",
+  "description": "Dependency Injection TypeScript - A TypeScript replica of Scala's distage-core library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/dits.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/dits/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/dits#readme",
+  "keywords": [
+    "dependency-injection",
+    "di",
+    "ioc",
+    "distage",
+    "typescript",
+    "staged-di",
+    "functoid"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@swc/core": "^1.13.5",
+    "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "typescript": "^5.3.3",
+    "unplugin-swc": "^1.5.8",
+    "vitest": "^1.2.0"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.1"
+  }
+}

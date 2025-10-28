@@ -1,0 +1,11 @@
+.direnv/
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+result
