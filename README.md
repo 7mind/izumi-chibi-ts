@@ -5,8 +5,6 @@
 [![codecov](https://codecov.io/gh/7mind/dits/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/dits)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Note:** Replace `YOUR_USERNAME` in the badges above with your actual GitHub username.
-
 A TypeScript re-implementation of some core concepts from Scala's [Izumi Project](https://github.com/7mind/izumi),
 `distage` staged dependency injection library in particular.
 
