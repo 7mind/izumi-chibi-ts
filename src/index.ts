@@ -10,6 +10,7 @@ export { Planner } from './core/Planner.js';
 export { Producer } from './core/Producer.js';
 export type { Locator } from './core/Locator.js';
 export { LocatorImpl } from './core/Locator.js';
+export { Subcontext, createSubcontext } from './core/Subcontext.js';
 export {
   Plan,
   PlanningError,
@@ -41,6 +42,7 @@ export type {
   AssistedFactoryBinding,
   AnyBinding,
 } from './model/Binding.js';
+export { Lifecycle, LifecycleManager, AggregateLifecycleError } from './model/Lifecycle.js';
 
 // Re-export reflect-metadata for convenience
 import 'reflect-metadata';

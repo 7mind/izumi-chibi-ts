@@ -150,7 +150,12 @@ export class Planner {
   /**
    * Create a plan for the given module, roots, and activation
    */
-  plan(module: ModuleDef, roots: DIKey[], activation: Activation = Activation.empty()): Plan {
+  plan(
+    module: ModuleDef,
+    roots: DIKey[],
+    activation: Activation = Activation.empty(),
+    parentLocator?: import('./Locator.js').Locator
+  ): Plan {
     // Group bindings by key (no filtering yet - we'll filter during traversal)
     const bindingIndex = this.groupBindings(module.getBindings());
 
@@ -171,6 +176,7 @@ export class Planner {
         visiting,
         visited,
         [],
+        parentLocator,
       );
     }
 
@@ -264,6 +270,7 @@ export class Planner {
     visiting: Set<string>,
     visited: Set<string>,
     path: DIKey[],
+    parentLocator?: import('./Locator.js').Locator,
   ): void {
     const keyStr = key.toMapKey();
 
@@ -280,6 +287,13 @@ export class Planner {
     // Get candidate bindings for this key
     const candidates = bindingIndex.get(keyStr);
     if (!candidates || candidates.length === 0) {
+      // Check if the key exists in the parent locator
+      if (parentLocator && parentLocator.has(key)) {
+        // Mark as visited - this dependency will come from parent
+        visited.add(keyStr);
+        return;
+      }
+
       const requiredBy = path.length > 0 ? path[path.length - 1] : undefined;
       throw new MissingDependencyError(key, requiredBy);
     }
@@ -319,6 +333,7 @@ export class Planner {
               visiting,
               visited,
               newPath,
+              parentLocator,
             );
           }
 
@@ -360,6 +375,7 @@ export class Planner {
           visiting,
           visited,
           newPath,
+          parentLocator,
         );
       }
 

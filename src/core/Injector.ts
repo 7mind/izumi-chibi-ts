@@ -20,6 +20,12 @@ export interface InjectorOptions {
    * (default: false, only explicitly requested roots are included)
    */
   autoRoots?: boolean;
+
+  /**
+   * Parent locator for subcontexts
+   * When set, the planner can reference bindings from the parent
+   */
+  parentLocator?: Locator;
 }
 
 /**
@@ -55,14 +61,14 @@ export class Injector {
       ? this.getAllKeys(module)
       : roots;
 
-    return this.planner.plan(module, actualRoots, activation);
+    return this.planner.plan(module, actualRoots, activation, options.parentLocator);
   }
 
   /**
    * Produce a Locator from a plan
    */
-  produceFromPlan(plan: Plan): Locator {
-    return this.producer.produce(plan);
+  produceFromPlan(plan: Plan, parentLocator?: Locator): Locator {
+    return this.producer.produce(plan, parentLocator);
   }
 
   /**
@@ -74,7 +80,7 @@ export class Injector {
     options: InjectorOptions = {},
   ): Locator {
     const plan = this.plan(module, roots, options);
-    return this.produceFromPlan(plan);
+    return this.produceFromPlan(plan, options.parentLocator);
   }
 
   /**

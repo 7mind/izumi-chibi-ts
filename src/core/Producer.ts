@@ -22,12 +22,12 @@ export class Producer {
   /**
    * Execute a plan and produce a Locator with all instances
    */
-  produce(plan: Plan): Locator {
+  produce(plan: Plan, parentLocator?: Locator): Locator {
     const instances = new Map<string, any>();
     const sets = new Map<string, Set<any>>();
 
     for (const step of plan.getSteps()) {
-      this.executeStep(step, instances, sets);
+      this.executeStep(step, instances, sets, parentLocator);
     }
 
     return new LocatorImpl(instances);
@@ -40,6 +40,7 @@ export class Producer {
     step: PlanStep,
     instances: Map<string, any>,
     sets: Map<string, Set<any>>,
+    parentLocator?: Locator,
   ): void {
     const keyStr = step.key.toMapKey();
 
@@ -48,7 +49,7 @@ export class Producer {
       return;
     }
 
-    const instance = this.createInstance(step, instances, sets);
+    const instance = this.createInstance(step, instances, sets, parentLocator);
     instances.set(keyStr, instance);
   }
 
@@ -59,6 +60,7 @@ export class Producer {
     step: PlanStep,
     instances: Map<string, any>,
     sets: Map<string, Set<any>>,
+    parentLocator?: Locator,
   ): any {
     const binding = step.binding;
 
@@ -69,6 +71,7 @@ export class Producer {
         step.key,
         sets,
         instances,
+        parentLocator,
       );
     }
 
@@ -77,20 +80,20 @@ export class Producer {
         return (binding as InstanceBinding).instance;
 
       case BindingKind.Class:
-        return this.createFromClass(binding as ClassBinding, step.dependencies, instances);
+        return this.createFromClass(binding as ClassBinding, step.dependencies, instances, parentLocator);
 
       case BindingKind.Factory:
-        return this.createFromFactory(binding as FactoryBinding, step.dependencies, instances);
+        return this.createFromFactory(binding as FactoryBinding, step.dependencies, instances, parentLocator);
 
       case BindingKind.Alias:
-        return this.resolveAlias(binding as AliasBinding, instances);
+        return this.resolveAlias(binding as AliasBinding, instances, parentLocator);
 
       case BindingKind.Set:
       case BindingKind.WeakSet:
-        return this.createSet(binding as SetBinding | WeakSetBinding, sets, instances);
+        return this.createSet(binding as SetBinding | WeakSetBinding, sets, instances, parentLocator);
 
       case BindingKind.AssistedFactory:
-        return this.createAssistedFactory(binding as AssistedFactoryBinding, instances);
+        return this.createAssistedFactory(binding as AssistedFactoryBinding, instances, parentLocator);
 
       default:
         throw new Error(`Unknown binding kind: ${(binding as any).kind}`);
@@ -104,16 +107,9 @@ export class Producer {
     binding: ClassBinding,
     dependencies: DIKey[],
     instances: Map<string, any>,
+    parentLocator?: Locator,
   ): any {
-    const args = dependencies.map(dep => {
-      const depKeyStr = dep.toMapKey();
-      const instance = instances.get(depKeyStr);
-      if (instance === undefined) {
-        throw new Error(`Dependency not found: ${dep.toString()}`);
-      }
-      return instance;
-    });
-
+    const args = dependencies.map(dep => this.resolveInstance(dep, instances, parentLocator));
     return new binding.implementation(...args);
   }
 
@@ -124,31 +120,21 @@ export class Producer {
     binding: FactoryBinding,
     dependencies: DIKey[],
     instances: Map<string, any>,
+    parentLocator?: Locator,
   ): any {
-    const args = dependencies.map(dep => {
-      const depKeyStr = dep.toMapKey();
-      const instance = instances.get(depKeyStr);
-      if (instance === undefined) {
-        throw new Error(`Dependency not found: ${dep.toString()}`);
-      }
-      return instance;
-    });
-
+    const args = dependencies.map(dep => this.resolveInstance(dep, instances, parentLocator));
     return binding.factory.execute(args);
   }
 
   /**
    * Resolve an alias binding
    */
-  private resolveAlias(binding: AliasBinding, instances: Map<string, any>): any {
-    const targetKeyStr = binding.target.toMapKey();
-    const instance = instances.get(targetKeyStr);
-
-    if (instance === undefined) {
-      throw new Error(`Alias target not found: ${binding.target.toString()}`);
-    }
-
-    return instance;
+  private resolveAlias(
+    binding: AliasBinding,
+    instances: Map<string, any>,
+    parentLocator?: Locator,
+  ): any {
+    return this.resolveInstance(binding.target, instances, parentLocator);
   }
 
   /**
@@ -159,6 +145,7 @@ export class Producer {
     key: DIKey,
     sets: Map<string, Set<any>>,
     instances: Map<string, any>,
+    parentLocator?: Locator,
   ): Set<any> {
     const setKeyStr = key.toMapKey();
 
@@ -177,6 +164,7 @@ export class Producer {
         const elementInstance = this.createInstanceForSetElement(
           binding.element,
           instances,
+          parentLocator,
         );
         set.add(elementInstance);
       } catch (error) {
@@ -200,6 +188,7 @@ export class Producer {
     binding: SetBinding | WeakSetBinding,
     sets: Map<string, Set<any>>,
     instances: Map<string, any>,
+    parentLocator?: Locator,
   ): Set<any> {
     const setKeyStr = binding.key.toMapKey();
 
@@ -216,6 +205,7 @@ export class Producer {
       const elementInstance = this.createInstanceForSetElement(
         binding.element,
         instances,
+        parentLocator,
       );
       set.add(elementInstance);
     } catch (error) {
@@ -237,6 +227,7 @@ export class Producer {
   private createInstanceForSetElement(
     element: ClassBinding | InstanceBinding | FactoryBinding,
     instances: Map<string, any>,
+    parentLocator?: Locator,
   ): any {
     switch (element.kind) {
       case BindingKind.Instance:
@@ -245,13 +236,13 @@ export class Producer {
       case BindingKind.Class: {
         const classBinding = element as ClassBinding;
         const dependencies = this.getBindingDependencies(classBinding);
-        return this.createFromClass(classBinding, dependencies, instances);
+        return this.createFromClass(classBinding, dependencies, instances, parentLocator);
       }
 
       case BindingKind.Factory: {
         const factoryBinding = element as FactoryBinding;
         const dependencies = this.getBindingDependencies(factoryBinding);
-        return this.createFromFactory(factoryBinding, dependencies, instances);
+        return this.createFromFactory(factoryBinding, dependencies, instances, parentLocator);
       }
 
       default:
@@ -276,6 +267,7 @@ export class Producer {
   private createAssistedFactory(
     binding: AssistedFactoryBinding,
     instances: Map<string, any>,
+    parentLocator?: Locator,
   ): (...runtimeArgs: any[]) => any {
     // Return a factory function that takes runtime arguments
     // and combines them with DI-resolved dependencies
@@ -286,17 +278,36 @@ export class Producer {
       // In a more sophisticated version, you'd use parameter names to match
       const diArgs = allDeps
         .slice(binding.assistedParams.length)
-        .map((dep: DIKey) => {
-          const depKeyStr = dep.toMapKey();
-          const instance = instances.get(depKeyStr);
-          if (instance === undefined) {
-            throw new Error(`Dependency not found: ${dep.toString()}`);
-          }
-          return instance;
-        });
+        .map((dep: DIKey) => this.resolveInstance(dep, instances, parentLocator));
 
       const allArgs = [...runtimeArgs, ...diArgs];
       return new binding.implementation(...allArgs);
     };
+  }
+
+  /**
+   * Resolve an instance from either the current instances map or the parent locator
+   */
+  private resolveInstance(
+    key: DIKey,
+    instances: Map<string, any>,
+    parentLocator?: Locator,
+  ): any {
+    const keyStr = key.toMapKey();
+    const instance = instances.get(keyStr);
+
+    if (instance !== undefined) {
+      return instance;
+    }
+
+    // Try parent locator
+    if (parentLocator) {
+      const parentInstance = parentLocator.find(key);
+      if (parentInstance !== undefined) {
+        return parentInstance;
+      }
+    }
+
+    throw new Error(`Dependency not found: ${key.toString()}`);
   }
 }

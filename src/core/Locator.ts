@@ -1,4 +1,5 @@
 import { DIKey } from '../model/DIKey.js';
+import { Lifecycle, LifecycleManager } from '../model/Lifecycle.js';
 
 /**
  * Locator provides access to instances in the dependency injection container.
@@ -47,13 +48,22 @@ export interface Locator {
    * Get all keys in the locator
    */
   keys(): IterableIterator<DIKey>;
+
+  /**
+   * Release all resources managed by this locator (for lifecycle-aware locators)
+   * This is a no-op for basic locators without lifecycle management.
+   */
+  close(): Promise<void>;
 }
 
 /**
  * Implementation of Locator
  */
 export class LocatorImpl implements Locator {
-  constructor(private readonly instances: Map<string, any>) {}
+  constructor(
+    private readonly instances: Map<string, any>,
+    private readonly lifecycleManager?: LifecycleManager,
+  ) {}
 
   get<T>(key: DIKey<T>): T {
     const keyStr = key.toMapKey();
@@ -98,6 +108,16 @@ export class LocatorImpl implements Locator {
       // This is a limitation of the string-based map key approach
       // In a production system, you might want to store DIKey objects directly
       yield this.reconstructKey(keyStr);
+    }
+  }
+
+  /**
+   * Release all lifecycle-managed resources.
+   * Resources are released in reverse order of acquisition (LIFO).
+   */
+  async close(): Promise<void> {
+    if (this.lifecycleManager) {
+      await this.lifecycleManager.releaseAll();
     }
   }
 
