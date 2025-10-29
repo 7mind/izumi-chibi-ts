@@ -361,4 +361,623 @@ describe('Path-Aware Activation Tracing', () => {
     const service3 = injector.produceByType(module, SimpleService);
     expect(service3.db).toBeInstanceOf(GenericDatabase);
   });
+
+  it('should handle diamond dependencies with consistent axis constraints', () => {
+    // Diamond pattern: App -> [ServiceA, ServiceB] -> SharedResource
+    @Injectable()
+    abstract class SharedResource {
+      abstract getValue(): string;
+    }
+
+    @Injectable()
+    class ProdResource extends SharedResource {
+      getValue(): string {
+        return 'prod-resource';
+      }
+    }
+
+    @Injectable()
+    class TestResource extends SharedResource {
+      getValue(): string {
+        return 'test-resource';
+      }
+    }
+
+    @Injectable()
+    class ServiceA {
+      constructor(public resource: SharedResource) {}
+    }
+
+    @Injectable()
+    class ServiceB {
+      constructor(public resource: SharedResource) {}
+    }
+
+    @Injectable()
+    class Application {
+      constructor(
+        public serviceA: ServiceA,
+        public serviceB: ServiceB,
+      ) {}
+    }
+
+    const module = new ModuleDef()
+      .make(SharedResource as any)
+        .tagged(Environment, 'Prod')
+        .fromClass(ProdResource)
+      .make(SharedResource as any)
+        .tagged(Environment, 'Test')
+        .fromClass(TestResource)
+      .make(ServiceA).fromSelf()
+      .make(ServiceB).fromSelf()
+      .make(Application).fromSelf();
+
+    const injector = new Injector();
+
+    // Both paths should get the same instance of SharedResource
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    const prodApp = injector.produceByType(module, Application, {
+      activation: prodActivation,
+    });
+
+    expect(prodApp.serviceA.resource).toBeInstanceOf(ProdResource);
+    expect(prodApp.serviceB.resource).toBeInstanceOf(ProdResource);
+    // Should be the same instance (singleton behavior)
+    expect(prodApp.serviceA.resource).toBe(prodApp.serviceB.resource);
+  });
+
+  it('should reject inconsistent axis constraints in different branches', () => {
+    @Injectable()
+    class ServiceA {
+      getValue(): string {
+        return 'A';
+      }
+    }
+
+    @Injectable()
+    class ServiceB {
+      getValue(): string {
+        return 'B';
+      }
+    }
+
+    @Injectable()
+    class Application {
+      constructor(
+        public serviceA: ServiceA,
+        public serviceB: ServiceB,
+      ) {}
+    }
+
+    // ServiceA requires Prod, ServiceB requires Test - impossible to satisfy
+    const module = new ModuleDef()
+      .make(ServiceA)
+        .tagged(Environment, 'Prod')
+        .fromSelf()
+      .make(ServiceB)
+        .tagged(Environment, 'Test')
+        .fromSelf()
+      .make(Application).fromSelf();
+
+    const injector = new Injector();
+
+    // Cannot satisfy both Prod and Test simultaneously
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    expect(() => {
+      injector.produceByType(module, Application, { activation: prodActivation });
+    }).toThrow(/ServiceB/);
+
+    const testActivation = Activation.of(AxisPoint.of(Environment, 'Test'));
+    expect(() => {
+      injector.produceByType(module, Application, { activation: testActivation });
+    }).toThrow(/ServiceA/);
+  });
+
+  it('should handle three-axis constraint propagation', () => {
+    const Cloud = Axis.of('Cloud', ['AWS', 'Azure', 'GCP']);
+
+    @Injectable()
+    class Storage {
+      constructor(
+        public readonly env: string,
+        public readonly region: string,
+        public readonly cloud: string,
+      ) {}
+
+      getLocation(): string {
+        return `${this.cloud}-${this.region}-${this.env}`;
+      }
+    }
+
+    @Injectable()
+    class DataService {
+      constructor(public storage: Storage) {}
+    }
+
+    const module = new ModuleDef()
+      .make(Storage)
+        .tagged(Environment, 'Prod')
+        .tagged(Region, 'US')
+        .tagged(Cloud, 'AWS')
+        .fromValue(new Storage('prod', 'us', 'aws'))
+      .make(Storage)
+        .tagged(Environment, 'Prod')
+        .tagged(Region, 'EU')
+        .tagged(Cloud, 'Azure')
+        .fromValue(new Storage('prod', 'eu', 'azure'))
+      .make(Storage)
+        .tagged(Environment, 'Test')
+        .tagged(Region, 'US')
+        .tagged(Cloud, 'GCP')
+        .fromValue(new Storage('test', 'us', 'gcp'))
+      .make(DataService).fromSelf();
+
+    const injector = new Injector();
+
+    // Test each combination
+    const awsActivation = Activation.of(
+      AxisPoint.of(Environment, 'Prod'),
+      AxisPoint.of(Region, 'US'),
+      AxisPoint.of(Cloud, 'AWS'),
+    );
+    const awsService = injector.produceByType(module, DataService, {
+      activation: awsActivation,
+    });
+    expect(awsService.storage.getLocation()).toBe('aws-us-prod');
+
+    const azureActivation = Activation.of(
+      AxisPoint.of(Environment, 'Prod'),
+      AxisPoint.of(Region, 'EU'),
+      AxisPoint.of(Cloud, 'Azure'),
+    );
+    const azureService = injector.produceByType(module, DataService, {
+      activation: azureActivation,
+    });
+    expect(azureService.storage.getLocation()).toBe('azure-eu-prod');
+
+    const gcpActivation = Activation.of(
+      AxisPoint.of(Environment, 'Test'),
+      AxisPoint.of(Region, 'US'),
+      AxisPoint.of(Cloud, 'GCP'),
+    );
+    const gcpService = injector.produceByType(module, DataService, {
+      activation: gcpActivation,
+    });
+    expect(gcpService.storage.getLocation()).toBe('gcp-us-test');
+  });
+
+  it('should handle mixed tagged and untagged dependencies in path', () => {
+    @Injectable()
+    class UntaggedBase {
+      getValue(): string {
+        return 'base';
+      }
+    }
+
+    @Injectable()
+    class TaggedMiddle {
+      constructor(public base: UntaggedBase) {}
+    }
+
+    @Injectable()
+    class UntaggedTop {
+      constructor(public middle: TaggedMiddle) {}
+    }
+
+    const module = new ModuleDef()
+      .make(UntaggedBase).fromSelf() // No tags
+      .make(TaggedMiddle)
+        .tagged(Environment, 'Prod')
+        .fromSelf()
+      .make(TaggedMiddle)
+        .tagged(Environment, 'Test')
+        .fromSelf()
+      .make(UntaggedTop).fromSelf(); // No tags
+
+    const injector = new Injector();
+
+    // Both should work - untagged services don't restrict paths
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    const prodTop = injector.produceByType(module, UntaggedTop, {
+      activation: prodActivation,
+    });
+    expect(prodTop.middle.base.getValue()).toBe('base');
+
+    const testActivation = Activation.of(AxisPoint.of(Environment, 'Test'));
+    const testTop = injector.produceByType(module, UntaggedTop, {
+      activation: testActivation,
+    });
+    expect(testTop.middle.base.getValue()).toBe('base');
+  });
+
+  it('should propagate constraints through alias bindings', () => {
+    @Injectable()
+    abstract class ICache {
+      abstract get(key: string): string;
+    }
+
+    @Injectable()
+    class RedisCache extends ICache {
+      get(key: string): string {
+        return `redis:${key}`;
+      }
+    }
+
+    @Injectable()
+    class MemoryCache extends ICache {
+      get(key: string): string {
+        return `memory:${key}`;
+      }
+    }
+
+    @Injectable()
+    class CacheManager {
+      constructor(public cache: ICache) {}
+    }
+
+    const module = new ModuleDef()
+      .make(RedisCache)
+        .tagged(Environment, 'Prod')
+        .fromSelf()
+      .make(MemoryCache)
+        .tagged(Environment, 'Test')
+        .fromSelf()
+      .make(ICache as any)
+        .tagged(Environment, 'Prod')
+        .fromAlias(RedisCache)
+      .make(ICache as any)
+        .tagged(Environment, 'Test')
+        .fromAlias(MemoryCache)
+      .make(CacheManager).fromSelf();
+
+    const injector = new Injector();
+
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    const prodManager = injector.produceByType(module, CacheManager, {
+      activation: prodActivation,
+    });
+    expect(prodManager.cache).toBeInstanceOf(RedisCache);
+    expect(prodManager.cache.get('test')).toBe('redis:test');
+
+    const testActivation = Activation.of(AxisPoint.of(Environment, 'Test'));
+    const testManager = injector.produceByType(module, CacheManager, {
+      activation: testActivation,
+    });
+    expect(testManager.cache).toBeInstanceOf(MemoryCache);
+    expect(testManager.cache.get('test')).toBe('memory:test');
+  });
+});
+
+describe('Set Bindings with Axis Constraints', () => {
+  const Environment = Axis.of('Environment', ['Prod', 'Test']);
+  const Region = Axis.of('Region', ['US', 'EU']);
+
+  @Injectable()
+  abstract class Plugin {
+    abstract getName(): string;
+  }
+
+  @Injectable()
+  class CorePlugin extends Plugin {
+    getName(): string {
+      return 'core';
+    }
+  }
+
+  @Injectable()
+  class ProdPlugin extends Plugin {
+    getName(): string {
+      return 'prod-plugin';
+    }
+  }
+
+  @Injectable()
+  class TestPlugin extends Plugin {
+    getName(): string {
+      return 'test-plugin';
+    }
+  }
+
+  @Injectable()
+  class USPlugin extends Plugin {
+    getName(): string {
+      return 'us-plugin';
+    }
+  }
+
+  @Injectable()
+  class EUPlugin extends Plugin {
+    getName(): string {
+      return 'eu-plugin';
+    }
+  }
+
+  class PluginManager {
+    constructor(public plugins: Set<Plugin>) {}
+
+    getPluginNames(): string[] {
+      return Array.from(this.plugins).map(p => p.getName()).sort();
+    }
+  }
+
+  it('should filter set elements based on path activation', () => {
+    const module = new ModuleDef()
+      .many(Plugin as any).addValue(new CorePlugin()) // No tags - always included
+      .many(Plugin as any)
+        .tagged(Environment, 'Prod')
+        .addValue(new ProdPlugin())
+      .many(Plugin as any)
+        .tagged(Environment, 'Test')
+        .addValue(new TestPlugin())
+      .many(Plugin as any)
+        .tagged(Region, 'US')
+        .addValue(new USPlugin())
+      .many(Plugin as any)
+        .tagged(Region, 'EU')
+        .addValue(new EUPlugin());
+
+    const injector = new Injector();
+
+    // Prod + US should get: core, prod-plugin, us-plugin
+    const prodUSActivation = Activation.of(
+      AxisPoint.of(Environment, 'Prod'),
+      AxisPoint.of(Region, 'US'),
+    );
+    const prodUSLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: prodUSActivation,
+    });
+    const prodUSPlugins = prodUSLocator.getSet(Plugin as any);
+    const prodUSManager = new PluginManager(prodUSPlugins);
+    expect(prodUSManager.getPluginNames()).toEqual(['core', 'prod-plugin', 'us-plugin']);
+
+    // Test + EU should get: core, test-plugin, eu-plugin
+    const testEUActivation = Activation.of(
+      AxisPoint.of(Environment, 'Test'),
+      AxisPoint.of(Region, 'EU'),
+    );
+    const testEULocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: testEUActivation,
+    });
+    const testEUPlugins = testEULocator.getSet(Plugin as any);
+    const testEUManager = new PluginManager(testEUPlugins);
+    expect(testEUManager.getPluginNames()).toEqual(['core', 'eu-plugin', 'test-plugin']);
+
+    // No activation should get only core (untagged)
+    const noActivationLocator = injector.produce(module, [DIKey.set(Plugin as any)]);
+    const noActivationPlugins = noActivationLocator.getSet(Plugin as any);
+    const noActivationManager = new PluginManager(noActivationPlugins);
+    expect(noActivationManager.getPluginNames()).toEqual(['core']);
+  });
+
+  it('should handle set elements with dependencies that have axis constraints', () => {
+    @Injectable()
+    abstract class Logger {
+      abstract log(msg: string): string;
+    }
+
+    @Injectable()
+    class ProdLogger extends Logger {
+      log(msg: string): string {
+        return `[PROD] ${msg}`;
+      }
+    }
+
+    @Injectable()
+    class TestLogger extends Logger {
+      log(msg: string): string {
+        return `[TEST] ${msg}`;
+      }
+    }
+
+    @Injectable()
+    class PluginWithLogger extends Plugin {
+      constructor(private logger: Logger) {
+        super();
+      }
+
+      getName(): string {
+        return this.logger.log('plugin-with-logger');
+      }
+    }
+
+    const module = new ModuleDef()
+      .make(Logger as any)
+        .tagged(Environment, 'Prod')
+        .fromClass(ProdLogger)
+      .make(Logger as any)
+        .tagged(Environment, 'Test')
+        .fromClass(TestLogger)
+      .many(Plugin as any).addValue(new CorePlugin())
+      .many(Plugin as any)
+        .tagged(Environment, 'Prod')
+        .addClass(PluginWithLogger); // Has Logger dependency
+
+    const injector = new Injector();
+
+    // Prod activation should include plugin with prod logger
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    const prodLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: prodActivation,
+    });
+    const prodPlugins = prodLocator.getSet(Plugin as any);
+    const prodManager = new PluginManager(prodPlugins);
+    const names = prodManager.getPluginNames();
+    expect(names).toContain('core');
+    expect(names).toContain('[PROD] plugin-with-logger');
+
+    // Test activation should NOT include the prod plugin (filtered out)
+    const testActivation = Activation.of(AxisPoint.of(Environment, 'Test'));
+    const testLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: testActivation,
+    });
+    const testPlugins = testLocator.getSet(Plugin as any);
+    const testManager = new PluginManager(testPlugins);
+    expect(testManager.getPluginNames()).toEqual(['core']);
+  });
+
+  it('should handle weak set elements that fail due to axis conflicts', () => {
+    @Injectable()
+    class Database {
+      query(): string {
+        return 'query-result';
+      }
+    }
+
+    @Injectable()
+    class PluginWithDB extends Plugin {
+      constructor(private db: Database) {
+        super();
+      }
+
+      getName(): string {
+        return `plugin-with-db: ${this.db.query()}`;
+      }
+    }
+
+    const module = new ModuleDef()
+      .make(Database)
+        .tagged(Environment, 'Prod')
+        .fromSelf()
+      .many(Plugin as any).addValue(new CorePlugin())
+      .many(Plugin as any)
+        .makeWeak()
+        .tagged(Environment, 'Test') // Requires Test environment
+        .addClass(PluginWithDB); // But DB only available in Prod
+
+    const injector = new Injector();
+
+    // Test activation: weak set element should be silently excluded
+    // because its dependency (Database) requires Prod but we're in Test
+    const testActivation = Activation.of(AxisPoint.of(Environment, 'Test'));
+    const testLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: testActivation,
+    });
+    const testPlugins = testLocator.getSet(Plugin as any);
+    const testManager = new PluginManager(testPlugins);
+    // Should only have core, not the weak plugin with conflicting dependency
+    expect(testManager.getPluginNames()).toEqual(['core']);
+
+    // Prod activation: PluginWithDB isn't available because it's tagged Test
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    const prodLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: prodActivation,
+    });
+    const prodPlugins = prodLocator.getSet(Plugin as any);
+    const prodManager = new PluginManager(prodPlugins);
+    // Should only have core
+    expect(prodManager.getPluginNames()).toEqual(['core']);
+  });
+
+  it('should correctly accumulate set elements from multiple modules with axis tags', () => {
+    const module = new ModuleDef()
+      .many(Plugin as any).addValue(new CorePlugin())
+      .many(Plugin as any)
+        .tagged(Environment, 'Prod')
+        .addValue(new ProdPlugin())
+      .many(Plugin as any)
+        .tagged(Environment, 'Test')
+        .addValue(new TestPlugin());
+
+    const injector = new Injector();
+
+    // Prod should get core + prod
+    const prodActivation = Activation.of(AxisPoint.of(Environment, 'Prod'));
+    const prodLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: prodActivation,
+    });
+    const prodPlugins = prodLocator.getSet(Plugin as any);
+    const prodManager = new PluginManager(prodPlugins);
+    expect(prodManager.getPluginNames()).toEqual(['core', 'prod-plugin']);
+
+    // Test should get core + test
+    const testActivation = Activation.of(AxisPoint.of(Environment, 'Test'));
+    const testLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: testActivation,
+    });
+    const testPlugins = testLocator.getSet(Plugin as any);
+    const testManager = new PluginManager(testPlugins);
+    expect(testManager.getPluginNames()).toEqual(['core', 'test-plugin']);
+  });
+
+  it('should handle nested dependencies in set elements with multi-axis constraints', () => {
+    @Injectable()
+    class Config {
+      constructor(
+        public readonly env: string,
+        public readonly region: string,
+      ) {}
+    }
+
+    @Injectable()
+    class ConfigurablePlugin extends Plugin {
+      constructor(private config: Config) {
+        super();
+      }
+
+      getName(): string {
+        return `${this.config.env}-${this.config.region}-plugin`;
+      }
+    }
+
+    const module = new ModuleDef()
+      .make(Config)
+        .tagged(Environment, 'Prod')
+        .tagged(Region, 'US')
+        .fromValue(new Config('prod', 'us'))
+      .make(Config)
+        .tagged(Environment, 'Prod')
+        .tagged(Region, 'EU')
+        .fromValue(new Config('prod', 'eu'))
+      .make(Config)
+        .tagged(Environment, 'Test')
+        .tagged(Region, 'US')
+        .fromValue(new Config('test', 'us'))
+      .many(Plugin as any).addValue(new CorePlugin())
+      .many(Plugin as any)
+        .tagged(Environment, 'Prod')
+        .tagged(Region, 'US')
+        .addClass(ConfigurablePlugin)
+      .many(Plugin as any)
+        .tagged(Environment, 'Prod')
+        .tagged(Region, 'EU')
+        .addClass(ConfigurablePlugin);
+
+    const injector = new Injector();
+
+    // Prod-US
+    const prodUSActivation = Activation.of(
+      AxisPoint.of(Environment, 'Prod'),
+      AxisPoint.of(Region, 'US'),
+    );
+    const prodUSLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: prodUSActivation,
+    });
+    const prodUSPlugins = prodUSLocator.getSet(Plugin as any);
+    const prodUSManager = new PluginManager(prodUSPlugins);
+    expect(prodUSManager.getPluginNames()).toEqual(['core', 'prod-us-plugin']);
+
+    // Prod-EU
+    const prodEUActivation = Activation.of(
+      AxisPoint.of(Environment, 'Prod'),
+      AxisPoint.of(Region, 'EU'),
+    );
+    const prodEULocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: prodEUActivation,
+    });
+    const prodEUPlugins = prodEULocator.getSet(Plugin as any);
+    const prodEUManager = new PluginManager(prodEUPlugins);
+    expect(prodEUManager.getPluginNames()).toEqual(['core', 'prod-eu-plugin']);
+
+    // Test-US (no plugin configured for this combination)
+    const testUSActivation = Activation.of(
+      AxisPoint.of(Environment, 'Test'),
+      AxisPoint.of(Region, 'US'),
+    );
+    const testUSLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
+      activation: testUSActivation,
+    });
+    const testUSPlugins = testUSLocator.getSet(Plugin as any);
+    const testUSManager = new PluginManager(testUSPlugins);
+    expect(testUSManager.getPluginNames()).toEqual(['core']);
+  });
 });
