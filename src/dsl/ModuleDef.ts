@@ -4,6 +4,67 @@ import { BindingTags, Axis, AxisPoint } from '../model/Activation.js';
 import { Functoid } from '../core/Functoid.js';
 
 /**
+ * Builder for specifying the source of a binding (like izumi-chibi-py's .using())
+ */
+export class BindingFromBuilder<T> {
+  constructor(
+    private readonly bindingBuilder: BindingBuilder<T>,
+  ) {}
+
+  /**
+   * Bind to a specific class type (will be instantiated via constructor injection)
+   */
+  type(implementation: new (...args: any[]) => T): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) =>
+      Bindings.class(key, implementation, tags)
+    );
+  }
+
+  /**
+   * Bind to a specific value instance
+   */
+  value(instance: T): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) =>
+      Bindings.instance(key, instance, tags)
+    );
+  }
+
+  /**
+   * Bind to a factory function or Functoid
+   */
+  factory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
+  factory<R extends T>(functoid: Functoid<R>): ModuleDef;
+  factory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) => {
+      const functoid =
+        factoryOrFunctoid instanceof Functoid
+          ? factoryOrFunctoid
+          : Functoid.fromFunction(factoryOrFunctoid);
+      return Bindings.factory(key, functoid, tags);
+    });
+  }
+
+  /**
+   * Create an alias to another binding
+   */
+  alias(targetType: new (...args: any[]) => T, targetId?: string): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) => {
+      const targetKey = targetId ? DIKey.named(targetType, targetId) : DIKey.of(targetType);
+      return Bindings.alias(key, targetKey, tags);
+    });
+  }
+
+  /**
+   * Create an assisted factory binding (for runtime parameters + DI)
+   */
+  assistedFactory(assistedParams: string[] = []): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) =>
+      Bindings.assistedFactory(key, this.bindingBuilder['type'], assistedParams, tags)
+    );
+  }
+}
+
+/**
  * Builder for creating a single binding with fluent API
  */
 export class BindingBuilder<T> {
@@ -40,6 +101,13 @@ export class BindingBuilder<T> {
   }
 
   /**
+   * Start specifying where the binding comes from (izumi-chibi-py style)
+   */
+  from(): BindingFromBuilder<T> {
+    return new BindingFromBuilder(this);
+  }
+
+  /**
    * Get the DIKey for this binding
    */
   private getKey(): DIKey<T> {
@@ -49,68 +117,92 @@ export class BindingBuilder<T> {
   }
 
   /**
-   * Bind to a specific value instance
+   * Internal method to finalize the binding
+   * @internal
    */
+  finalize(createBinding: (key: DIKey<T>, tags: BindingTags) => AnyBinding): ModuleDef {
+    const key = this.getKey();
+    const binding = createBinding(key, this.currentTags);
+    this.module.addBinding(binding);
+    return this.module;
+  }
+
+  // Legacy methods for backward compatibility (deprecated)
+  /** @deprecated Use .from().value() instead */
   fromValue(value: T): ModuleDef {
-    const key = this.getKey();
-    const binding = Bindings.instance(key, value, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
+    return this.from().value(value);
   }
 
-  /**
-   * Bind to a class implementation (will be instantiated)
-   */
+  /** @deprecated Use .from().type() instead */
   fromClass(implementation: new (...args: any[]) => T): ModuleDef {
-    const key = this.getKey();
-    const binding = Bindings.class(key, implementation, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
+    return this.from().type(implementation);
   }
 
-  /**
-   * Bind using the type itself as implementation (auto-binding)
-   */
+  /** @deprecated Use .from().type() with the same type instead */
   fromSelf(): ModuleDef {
-    return this.fromClass(this.type);
+    return this.from().type(this.type);
   }
 
-  /**
-   * Bind to a factory function
-   */
+  /** @deprecated Use .from().factory() instead */
   fromFactory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
   fromFactory<R extends T>(functoid: Functoid<R>): ModuleDef;
   fromFactory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
-    const key = this.getKey();
-    const functoid =
-      factoryOrFunctoid instanceof Functoid
-        ? factoryOrFunctoid
-        : Functoid.fromFunction(factoryOrFunctoid);
-
-    const binding = Bindings.factory(key, functoid, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
+    return this.from().factory(factoryOrFunctoid as any);
   }
 
-  /**
-   * Create an alias to another binding
-   */
+  /** @deprecated Use .from().alias() instead */
   fromAlias(targetType: new (...args: any[]) => T, targetId?: string): ModuleDef {
-    const key = this.getKey();
-    const targetKey = targetId ? DIKey.named(targetType, targetId) : DIKey.of(targetType);
-    const binding = Bindings.alias(key, targetKey, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
+    return this.from().alias(targetType, targetId);
+  }
+
+  /** @deprecated Use .from().assistedFactory() instead */
+  fromAssistedFactory(assistedParams: string[] = []): ModuleDef {
+    return this.from().assistedFactory(assistedParams);
+  }
+}
+
+/**
+ * Builder for specifying the source of a set element binding
+ */
+export class SetBindingFromBuilder<T> {
+  constructor(
+    private readonly setBuilder: SetBindingBuilder<T>,
+  ) {}
+
+  /**
+   * Add a class type to the set (will be instantiated)
+   */
+  type(implementation: new (...args: any[]) => T): ModuleDef {
+    return this.setBuilder.finalizeElement((setKey, elementKey, tags, weak) => {
+      const element = Bindings.class(elementKey, implementation, tags);
+      return Bindings.set(setKey, elementKey, element, weak, tags);
+    });
   }
 
   /**
-   * Create an assisted factory binding (for runtime parameters + DI)
+   * Add a value instance to the set
    */
-  fromAssistedFactory(assistedParams: string[] = []): ModuleDef {
-    const key = this.getKey();
-    const binding = Bindings.assistedFactory(key, this.type, assistedParams, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
+  value(instance: T): ModuleDef {
+    return this.setBuilder.finalizeElement((setKey, elementKey, tags, weak) => {
+      const element = Bindings.instance(elementKey, instance, tags);
+      return Bindings.set(setKey, elementKey, element, weak, tags);
+    });
+  }
+
+  /**
+   * Add a factory to the set
+   */
+  factory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
+  factory<R extends T>(functoid: Functoid<R>): ModuleDef;
+  factory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
+    return this.setBuilder.finalizeElement((setKey, elementKey, tags, weak) => {
+      const functoid =
+        factoryOrFunctoid instanceof Functoid
+          ? factoryOrFunctoid
+          : Functoid.fromFunction(factoryOrFunctoid);
+      const element = Bindings.factory(elementKey, functoid, tags);
+      return Bindings.set(setKey, elementKey, element, weak, tags);
+    });
   }
 }
 
@@ -160,53 +252,10 @@ export class SetBindingBuilder<T> {
   }
 
   /**
-   * Add a value to the set
+   * Start specifying where the set element comes from
    */
-  addValue(value: T): ModuleDef {
-    const setKey = this.getSetKey();
-    const elementKey = this.getElementKey();
-    const element = Bindings.instance(elementKey, value, this.currentTags);
-    const binding = Bindings.set(setKey, elementKey, element, this.weak, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
-  }
-
-  /**
-   * Add a class implementation to the set
-   */
-  addClass(implementation: new (...args: any[]) => T): ModuleDef {
-    const setKey = this.getSetKey();
-    const elementKey = this.getElementKey();
-    const element = Bindings.class(elementKey, implementation, this.currentTags);
-    const binding = Bindings.set(setKey, elementKey, element, this.weak, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
-  }
-
-  /**
-   * Add using the element type itself
-   */
-  addSelf(): ModuleDef {
-    return this.addClass(this.elementType);
-  }
-
-  /**
-   * Add a factory to the set
-   */
-  addFactory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
-  addFactory<R extends T>(functoid: Functoid<R>): ModuleDef;
-  addFactory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
-    const setKey = this.getSetKey();
-    const elementKey = this.getElementKey();
-    const functoid =
-      factoryOrFunctoid instanceof Functoid
-        ? factoryOrFunctoid
-        : Functoid.fromFunction(factoryOrFunctoid);
-
-    const element = Bindings.factory(elementKey, functoid, this.currentTags);
-    const binding = Bindings.set(setKey, elementKey, element, this.weak, this.currentTags);
-    this.module.addBinding(binding);
-    return this.module;
+  from(): SetBindingFromBuilder<T> {
+    return new SetBindingFromBuilder(this);
   }
 
   private getSetKey(): DIKey<Set<T>> {
@@ -220,19 +269,72 @@ export class SetBindingBuilder<T> {
       ? DIKey.named(this.elementType, this.currentId)
       : DIKey.of(this.elementType);
   }
+
+  /**
+   * Internal method to finalize a set element binding
+   * @internal
+   */
+  finalizeElement(
+    createBinding: (
+      setKey: DIKey<Set<T>>,
+      elementKey: DIKey<T>,
+      tags: BindingTags,
+      weak: boolean,
+    ) => AnyBinding
+  ): ModuleDef {
+    const setKey = this.getSetKey();
+    const elementKey = this.getElementKey();
+    const binding = createBinding(setKey, elementKey, this.currentTags, this.weak);
+    this.module.addBinding(binding);
+    return this.module;
+  }
+
+  // Legacy methods for backward compatibility (deprecated)
+  /** @deprecated Use .from().value() instead */
+  addValue(value: T): ModuleDef {
+    return this.from().value(value);
+  }
+
+  /** @deprecated Use .from().type() instead */
+  addClass(implementation: new (...args: any[]) => T): ModuleDef {
+    return this.from().type(implementation);
+  }
+
+  /** @deprecated Use .from().type() with element type instead */
+  addSelf(): ModuleDef {
+    return this.from().type(this.elementType);
+  }
+
+  /** @deprecated Use .from().factory() instead */
+  addFactory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
+  addFactory<R extends T>(functoid: Functoid<R>): ModuleDef;
+  addFactory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
+    return this.from().factory(factoryOrFunctoid as any);
+  }
 }
 
 /**
  * Main DSL for defining dependency injection modules.
- * Provides a fluent API for declaring bindings.
+ * Provides a fluent API for declaring bindings, inspired by izumi-chibi-py.
  *
- * Example:
+ * Example (new syntax):
  *   const module = new ModuleDef()
- *     .make(Database).fromClass(PostgresDatabase)
- *     .make(UserService).fromSelf()
- *     .make(Config).named('db').fromValue(dbConfig)
- *     .many(Plugin).addClass(AuthPlugin)
- *     .many(Plugin).addClass(LoggingPlugin);
+ *     .make(Database).from().type(PostgresDatabase)
+ *     .make(UserService).from().type(UserService)
+ *     .make(Config).named('db').from().value(dbConfig)
+ *     .many(Plugin).from().type(AuthPlugin)
+ *     .many(Plugin).from().type(LoggingPlugin);
+ *
+ * The .from() method returns a builder that supports:
+ *   - .type(Class) - bind to a class (constructor injection)
+ *   - .value(instance) - bind to a specific instance
+ *   - .factory(fn) - bind to a factory function
+ *   - .alias(TargetClass) - create an alias to another binding
+ *
+ * Legacy syntax (deprecated but still supported):
+ *   .make(Database).fromClass(PostgresDatabase)
+ *   .make(UserService).fromSelf()
+ *   .make(Config).fromValue(config)
  */
 export class ModuleDef {
   private bindings: AnyBinding[] = [];
