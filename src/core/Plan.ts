@@ -111,3 +111,18 @@ export class ConflictingBindingsError extends PlanningError {
     this.name = 'ConflictingBindingsError';
   }
 }
+
+export class AxisConflictError extends PlanningError {
+  constructor(
+    public readonly key: DIKey,
+    public readonly requiredBy: DIKey | undefined,
+    public readonly pathConstraints: string,
+  ) {
+    const msg = requiredBy
+      ? `No valid binding found for ${key.toString()}, required by ${requiredBy.toString()}. ` +
+        `Path constraints: ${pathConstraints}`
+      : `No valid binding found for ${key.toString()}. Path constraints: ${pathConstraints}`;
+    super(msg);
+    this.name = 'AxisConflictError';
+  }
+}
