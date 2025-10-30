@@ -1,4 +1,4 @@
-# Chibi Izumi for TypeScript (DITS)
+# Chibi Izumi for TypeScript (distage)
 
 [![CI](https://github.com/7mind/izumi-chibi-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/7mind/izumi-chibi-ts/actions/workflows/ci.yml)
 [![npm version](https://badge.fury.io/js/izumi-chibi-ts.svg)](https://www.npmjs.com/package/izumi-chibi-ts)
@@ -16,7 +16,7 @@ Sibling project: [izumi-chibi-py](https://github.com/7mind/izumi-chibi-py).
 
 ## Features
 
-DITS brings the power of distage's staged dependency injection to TypeScript:
+distage brings the power of distage's staged dependency injection to TypeScript:
 
 - **Fluent DSL** for defining dependency injection modules
 - **Type-safe bindings** using TypeScript's type system
@@ -30,7 +30,7 @@ DITS brings the power of distage's staged dependency injection to TypeScript:
 ## Installation
 
 ```bash
-npm install dits reflect-metadata
+npm install distage reflect-metadata
 ```
 
 Make sure to enable the following in your `tsconfig.json`:
@@ -44,13 +44,13 @@ Make sure to enable the following in your `tsconfig.json`:
 }
 ```
 
-**Important:** For best experience, use a transformer like [SWC](https://swc.rs/) or [Babel](https://babeljs.io/) that emits decorator metadata. With SWC (which DITS uses in tests), you don't need `@Inject()` on constructor parameters - just `@Injectable()` on the class is enough!
+**Important:** For best experience, use a transformer like [SWC](https://swc.rs/) or [Babel](https://babeljs.io/) that emits decorator metadata. With SWC (which distage uses in tests), you don't need `@Inject()` on constructor parameters - just `@Injectable()` on the class is enough!
 
 ## Quick Start
 
 ```typescript
 import 'reflect-metadata';
-import { Injectable, Injector, ModuleDef, Id } from 'dits';
+import { Injectable, Injector, ModuleDef, Id } from 'distage';
 
 // Define your classes with @Injectable decorator
 @Injectable()
@@ -185,7 +185,7 @@ const module = new ModuleDef()
 Select different implementations based on runtime configuration:
 
 ```typescript
-import { Axis, AxisPoint, Activation } from 'dits';
+import { Axis, AxisPoint, Activation } from 'distage';
 
 const Environment = Axis.of('Environment', ['Dev', 'Prod']);
 
@@ -216,7 +216,7 @@ const prodService = injector.produceByType(module, UserService, {
 Functoid represents a function with its dependencies. It supports both automatic type extraction and manual annotation:
 
 ```typescript
-import { Functoid } from 'dits';
+import { Functoid } from 'distage';
 
 // Automatic type extraction (requires reflect-metadata)
 const functoid1 = Functoid.fromFunction((db: Database, config: Config) => {
@@ -231,7 +231,7 @@ const functoid2 = Functoid.fromFunction((db: Database, name: string) => {
 
 ### Planner and Producer
 
-DITS separates planning (building the dependency graph) from production (instantiating):
+distage separates planning (building the dependency graph) from production (instantiating):
 
 ```typescript
 const injector = new Injector();
@@ -272,7 +272,7 @@ if (locator.has(DIKey.of(Cache))) {
 
 ## Error Detection
 
-DITS detects common dependency injection errors at planning time:
+distage detects common dependency injection errors at planning time:
 
 ### Missing Dependencies
 
@@ -367,7 +367,7 @@ npm run test:coverage
 
 ## Architecture
 
-DITS follows distage's architecture:
+distage follows distage's architecture:
 
 1. **ModuleDef**: DSL for declaring bindings
 2. **Planner**: Analyzes modules and creates execution plans
@@ -382,7 +382,7 @@ DITS follows distage's architecture:
 
 ## Comparison with distage
 
-DITS implements the core concepts of distage with TypeScript-specific adaptations:
+distage implements the core concepts of distage with TypeScript-specific adaptations:
 
 **Similarities:**
 - Staged DI with Planner/Producer separation

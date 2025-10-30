@@ -1,6 +1,6 @@
 import 'reflect-metadata';
-import { DIKey } from '@/model/DIKey';
-import { getAllParameterIds } from '@/model/Id';
+import { DIKey } from '@/distage/model/DIKey';
+import { getAllParameterIds } from '@/distage/model/Id';
 
 /**
  * Represents information about a function parameter
@@ -13,7 +13,7 @@ export interface ParameterInfo {
 
 /**
  * A Functoid represents a function with its dependencies.
- * It's the core abstraction in DITS for representing dependency constructors.
+ * It's the core abstraction in distage for representing dependency constructors.
  *
  * Functoids can be created from:
  * - Regular functions

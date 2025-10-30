@@ -1,5 +1,5 @@
 {
-  description = "DITS - Dependency Injection TypeScript (distage replica)";
+  description = "distage - Dependency Injection TypeScript (distage replica)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -20,7 +20,7 @@
           ];
 
           shellHook = ''
-            echo "DITS Development Environment"
+            echo "distage Development Environment"
             echo "Node: $(node --version)"
             echo "npm: $(npm --version)"
             echo ""

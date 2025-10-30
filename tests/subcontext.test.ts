@@ -6,7 +6,7 @@ import {
   Injectable,
   Subcontext,
   createSubcontext,
-} from '../src/index.js';
+} from '../src/distage';
 
 describe('Subcontext', () => {
   describe('Basic Subcontext Operations', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Injectable } from '../src/index.js';
+import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Injectable } from '../src/distage';
 
 /**
  * Tests for path-aware activation tracing.

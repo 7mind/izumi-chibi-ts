@@ -1,4 +1,4 @@
-# DITS Implementation Summary
+# distage Implementation Summary
 
 ## ✅ Successfully Implemented
 
@@ -122,7 +122,7 @@ Locator → Type-safe access
 ## Usage Example
 
 ```typescript
-import { Injectable, Injector, ModuleDef } from 'dits';
+import { Injectable, Injector, ModuleDef } from 'distage';
 
 @Injectable()
 class Config {
@@ -210,7 +210,7 @@ const service = injector.produceByType(module, UserService);
 
 ## Conclusion
 
-DITS is a functional TypeScript replica of distage-core with 87% test coverage. The core architecture matches distage's design, and most features work correctly. The remaining issues are minor and can be resolved with targeted debugging.
+distage is a functional TypeScript replica of distage-core with 87% test coverage. The core architecture matches distage's design, and most features work correctly. The remaining issues are minor and can be resolved with targeted debugging.
 
 The project demonstrates:
 - Deep understanding of distage's architecture

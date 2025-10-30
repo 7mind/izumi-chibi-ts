@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Functoid, DIKey, Injector, ModuleDef, Injectable } from '../src/index.js';
+import { Functoid, DIKey, Injector, ModuleDef, Injectable } from '../src/distage';
 
 // Test classes
 @Injectable()

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injectable } from '../src/index.js';
+import { Injectable } from '../src/distage';
 import 'reflect-metadata';
 
 describe('Metadata Emission', () => {

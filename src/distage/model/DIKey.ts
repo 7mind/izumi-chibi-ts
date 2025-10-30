@@ -80,9 +80,9 @@ export class DIKey<T = any> {
 /**
  * Metadata key for storing @Id annotations
  */
-export const ID_METADATA_KEY = Symbol('dits:id');
+export const ID_METADATA_KEY = Symbol('distage:id');
 
 /**
  * Store for named parameter annotations
  */
-export const PARAM_IDS_METADATA_KEY = Symbol('dits:param-ids');
+export const PARAM_IDS_METADATA_KEY = Symbol('distage:param-ids');

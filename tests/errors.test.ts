@@ -7,7 +7,7 @@ import {
   CircularDependencyError,
   Injectable,
   Functoid,
-} from '../src/index.js';
+} from '../src/distage';
 
 describe('Error Handling', () => {
   it('should detect circular dependencies', () => {

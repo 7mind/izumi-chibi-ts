@@ -1,4 +1,4 @@
-import { DIKey } from '@/model/DIKey';
+import { DIKey } from '@/distage/model/DIKey';
 import {
   AnyBinding,
   BindingKind,
@@ -9,10 +9,10 @@ import {
   SetBinding,
   WeakSetBinding,
   AssistedFactoryBinding,
-} from '@/model/Binding';
-import { Plan, PlanStep } from '@/core/Plan';
-import { Locator, LocatorImpl } from '@/core/Locator';
-import { getConstructorDependencies } from '@/core/Functoid';
+} from '@/distage/model/Binding';
+import { Plan, PlanStep } from '@/distage/core/Plan';
+import { Locator, LocatorImpl } from '@/distage/core/Locator';
+import { getConstructorDependencies } from '@/distage/core/Functoid';
 
 /**
  * The Producer executes a Plan to create instances.

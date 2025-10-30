@@ -25,7 +25,7 @@ import 'reflect-metadata';
 export function Injectable() {
   return function (constructor: any) {
     // Store a marker so we know this class is injectable
-    Reflect.defineMetadata('dits:injectable', true, constructor);
+    Reflect.defineMetadata('distage:injectable', true, constructor);
     return constructor;
   };
 }
@@ -34,5 +34,5 @@ export function Injectable() {
  * Check if a class has been marked as @Injectable()
  */
 export function isInjectable(target: any): boolean {
-  return Reflect.getMetadata('dits:injectable', target) === true;
+  return Reflect.getMetadata('distage:injectable', target) === true;
 }

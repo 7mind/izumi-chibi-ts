@@ -1,6 +1,6 @@
-import { DIKey } from '@/model/DIKey';
-import { BindingTags } from '@/model/Activation';
-import { Functoid } from '@/core/Functoid';
+import { DIKey } from '@/distage/model/DIKey';
+import { BindingTags } from '@/distage/model/Activation';
+import { Functoid } from '@/distage/core/Functoid';
 
 /**
  * Base interface for all binding types
@@ -12,7 +12,7 @@ export interface Binding<T = any> {
 }
 
 /**
- * Types of bindings supported by DITS
+ * Types of bindings supported by distage
  */
 export enum BindingKind {
   Instance = 'Instance',

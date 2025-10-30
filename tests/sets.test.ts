@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Injectable } from '../src/index.js';
+import { Injector, ModuleDef, DIKey, Injectable } from '../src/distage';
 
 // Test classes
 interface Plugin {

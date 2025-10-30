@@ -1,4 +1,4 @@
-# DITS Implementation Status
+# distage Implementation Status
 
 ## ✅ Completed Components
 
@@ -162,7 +162,7 @@ The implementation successfully replicates distage's core architecture:
 ## 🚀 Usage Example (Working)
 
 ```typescript
-import { Injector, ModuleDef } from 'dits';
+import { Injector, ModuleDef } from 'distage';
 
 class Database {
   constructor(public connectionString: string) {}

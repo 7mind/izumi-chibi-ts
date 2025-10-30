@@ -1,7 +1,7 @@
-import { DIKey } from '@/model/DIKey';
-import { AnyBinding, Bindings } from '@/model/Binding';
-import { BindingTags, Axis, AxisPoint } from '@/model/Activation';
-import { Functoid } from '@/core/Functoid';
+import { DIKey } from '@/distage/model/DIKey';
+import { AnyBinding, Bindings } from '@/distage/model/Binding';
+import { BindingTags, Axis, AxisPoint } from '@/distage/model/Activation';
+import { Functoid } from '@/distage/core/Functoid';
 
 /**
  * Builder for specifying the source of a binding (like izumi-chibi-py's .using())

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Lifecycle, LifecycleManager, AggregateLifecycleError } from '../src/index.js';
+import { Lifecycle, LifecycleManager, AggregateLifecycleError } from '../src/distage';
 
 describe('Lifecycle', () => {
   describe('Basic Lifecycle Operations', () => {

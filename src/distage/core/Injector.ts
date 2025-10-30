@@ -1,10 +1,10 @@
-import { DIKey } from '@/model/DIKey';
-import { Activation } from '@/model/Activation';
-import { ModuleDef } from '@/dsl/ModuleDef';
-import { Planner } from '@/core/Planner';
-import { Producer } from '@/core/Producer';
-import { Locator } from '@/core/Locator';
-import { Plan } from '@/core/Plan';
+import { DIKey } from '@/distage/model/DIKey';
+import { Activation } from '@/distage/model/Activation';
+import { ModuleDef } from '@/distage/dsl/ModuleDef';
+import { Planner } from '@/distage/core/Planner';
+import { Producer } from '@/distage/core/Producer';
+import { Locator } from '@/distage/core/Locator';
+import { Plan } from '@/distage/core/Plan';
 
 /**
  * Options for creating an Injector
@@ -29,7 +29,7 @@ export interface InjectorOptions {
 }
 
 /**
- * The Injector is the main entry point for DITS.
+ * The Injector is the main entry point for distage.
  * It coordinates the Planner and Producer to build a dependency injection container.
  *
  * Usage:

@@ -1,6 +1,6 @@
-# Contributing to DITS
+# Contributing to distage
 
-Thank you for your interest in contributing to DITS!
+Thank you for your interest in contributing to distage!
 
 ## Development Setup
 
@@ -108,7 +108,7 @@ The project uses GitHub Actions for continuous integration:
 ## Project Structure
 
 ```
-dits/
+distage/
 ├── src/
 │   ├── core/         # Core DI engine (Planner, Producer, Injector)
 │   ├── dsl/          # Fluent API (ModuleDef)
@@ -120,7 +120,7 @@ dits/
 
 ## Architecture
 
-DITS follows distage's architecture:
+distage follows distage's architecture:
 
 1. **ModuleDef** - DSL for defining bindings
 2. **Planner** - Analyzes dependency graph, detects issues

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ID_METADATA_KEY } from '@/model/DIKey';
+import { ID_METADATA_KEY } from '@/distage/model/DIKey';
 
 /**
  * Decorator to mark a parameter or property with a named identifier.

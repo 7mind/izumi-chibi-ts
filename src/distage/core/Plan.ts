@@ -1,5 +1,5 @@
-import { DIKey } from '@/model/DIKey';
-import { AnyBinding } from '@/model/Binding';
+import { DIKey } from '@/distage/model/DIKey';
+import { AnyBinding } from '@/distage/model/Binding';
 
 /**
  * A step in the execution plan that describes how to create an instance

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Injectable, Axis, AxisPoint, Activation } from '../src/index.js';
+import { Injector, ModuleDef, DIKey, Injectable, Axis, AxisPoint, Activation } from '../src/distage';
 
 describe('New DSL Syntax (izumi-chibi-py style)', () => {
   @Injectable()
