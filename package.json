@@ -1,7 +1,7 @@
 {
-  "name": "dits",
+  "name": "@izumi-framework/izumi-chibi-ts",
   "version": "0.1.0",
-  "description": "Dependency Injection TypeScript - A TypeScript replica of Scala's distage-core library",
+  "description": "Chibi Izumi - A TypeScript replica of Scala's distage-core library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -24,14 +24,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/dits.git"
+    "url": "git+https://github.com/7mind/izumi-chibi-ts.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/dits/issues"
+    "url": "https://github.com/7mind/izumi-chibi-ts/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/dits#readme",
+  "homepage": "https://github.com/7mind/izumi-chibi-ts",
   "keywords": [
     "dependency-injection",
+    "izumi",
     "di",
     "ioc",
     "distage",
