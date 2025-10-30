@@ -4,33 +4,33 @@
  */
 
 // Core
-export { Injector } from './core/Injector.js';
-export type { InjectorOptions } from './core/Injector.js';
-export { Planner } from './core/Planner.js';
-export { Producer } from './core/Producer.js';
-export type { Locator } from './core/Locator.js';
-export { LocatorImpl } from './core/Locator.js';
-export { Subcontext, createSubcontext } from './core/Subcontext.js';
+export { Injector } from '@/core/Injector';
+export type { InjectorOptions } from '@/core/Injector';
+export { Planner } from '@/core/Planner';
+export { Producer } from '@/core/Producer';
+export type { Locator } from '@/core/Locator';
+export { LocatorImpl } from '@/core/Locator';
+export { Subcontext, createSubcontext } from '@/core/Subcontext';
 export {
   Plan,
   PlanningError,
   MissingDependencyError,
   CircularDependencyError,
   ConflictingBindingsError,
-} from './core/Plan.js';
-export type { PlanStep } from './core/Plan.js';
-export { Functoid, getConstructorParameters, getConstructorDependencies } from './core/Functoid.js';
-export type { ParameterInfo } from './core/Functoid.js';
+} from '@/core/Plan';
+export type { PlanStep } from '@/core/Plan';
+export { Functoid, getConstructorParameters, getConstructorDependencies } from '@/core/Functoid';
+export type { ParameterInfo } from '@/core/Functoid';
 
 // DSL
-export { ModuleDef, BindingBuilder, SetBindingBuilder } from './dsl/ModuleDef.js';
+export { ModuleDef, BindingBuilder, SetBindingBuilder } from '@/dsl/ModuleDef';
 
 // Model
-export { DIKey, ID_METADATA_KEY, PARAM_IDS_METADATA_KEY } from './model/DIKey.js';
-export { Id, getParameterId, getAllParameterIds } from './model/Id.js';
-export { Injectable } from './model/Injectable.js';
-export { Axis, AxisPoint, Activation, BindingTags } from './model/Activation.js';
-export { BindingKind, Bindings } from './model/Binding.js';
+export { DIKey, ID_METADATA_KEY, PARAM_IDS_METADATA_KEY } from '@/model/DIKey';
+export { Id, getParameterId, getAllParameterIds } from '@/model/Id';
+export { Injectable } from '@/model/Injectable';
+export { Axis, AxisPoint, Activation, BindingTags } from '@/model/Activation';
+export { BindingKind, Bindings } from '@/model/Binding';
 export type {
   Binding,
   InstanceBinding,
@@ -41,8 +41,8 @@ export type {
   WeakSetBinding,
   AssistedFactoryBinding,
   AnyBinding,
-} from './model/Binding.js';
-export { Lifecycle, LifecycleManager, AggregateLifecycleError } from './model/Lifecycle.js';
+} from '@/model/Binding';
+export { Lifecycle, LifecycleManager, AggregateLifecycleError } from '@/model/Lifecycle';
 
 // Re-export reflect-metadata for convenience
 import 'reflect-metadata';

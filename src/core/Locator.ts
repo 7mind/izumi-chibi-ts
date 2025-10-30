@@ -1,5 +1,5 @@
-import { DIKey } from '../model/DIKey.js';
-import { Lifecycle, LifecycleManager } from '../model/Lifecycle.js';
+import { DIKey } from '@/model/DIKey';
+import { Lifecycle, LifecycleManager } from '@/model/Lifecycle';
 
 /**
  * Locator provides access to instances in the dependency injection container.

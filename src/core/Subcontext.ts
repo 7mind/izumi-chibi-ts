@@ -23,11 +23,11 @@
  *   const handler = subcontext.get(DIKey.of(RequestHandler));
  */
 
-import { Locator, LocatorImpl } from './Locator.js';
-import { Injector, InjectorOptions } from './Injector.js';
-import { ModuleDef } from '../dsl/ModuleDef.js';
-import { DIKey } from '../model/DIKey.js';
-import { Activation } from '../model/Activation.js';
+import { Locator, LocatorImpl } from '@/core/Locator';
+import { Injector, InjectorOptions } from '@/core/Injector';
+import { ModuleDef } from '@/dsl/ModuleDef';
+import { DIKey } from '@/model/DIKey';
+import { Activation } from '@/model/Activation';
 
 /**
  * A subcontext is a child locator that inherits from a parent locator

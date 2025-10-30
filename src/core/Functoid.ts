@@ -1,6 +1,6 @@
 import 'reflect-metadata';
-import { DIKey } from '../model/DIKey.js';
-import { getAllParameterIds } from '../model/Id.js';
+import { DIKey } from '@/model/DIKey';
+import { getAllParameterIds } from '@/model/Id';
 
 /**
  * Represents information about a function parameter

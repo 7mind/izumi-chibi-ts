@@ -1,10 +1,10 @@
-import { DIKey } from '../model/DIKey.js';
-import { Activation } from '../model/Activation.js';
-import { ModuleDef } from '../dsl/ModuleDef.js';
-import { Planner } from './Planner.js';
-import { Producer } from './Producer.js';
-import { Locator } from './Locator.js';
-import { Plan } from './Plan.js';
+import { DIKey } from '@/model/DIKey';
+import { Activation } from '@/model/Activation';
+import { ModuleDef } from '@/dsl/ModuleDef';
+import { Planner } from '@/core/Planner';
+import { Producer } from '@/core/Producer';
+import { Locator } from '@/core/Locator';
+import { Plan } from '@/core/Plan';
 
 /**
  * Options for creating an Injector

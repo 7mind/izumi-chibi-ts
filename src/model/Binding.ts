@@ -1,6 +1,6 @@
-import { DIKey } from './DIKey.js';
-import { BindingTags } from './Activation.js';
-import { Functoid } from '../core/Functoid.js';
+import { DIKey } from '@/model/DIKey';
+import { BindingTags } from '@/model/Activation';
+import { Functoid } from '@/core/Functoid';
 
 /**
  * Base interface for all binding types

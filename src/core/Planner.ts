@@ -1,4 +1,4 @@
-import { DIKey } from '../model/DIKey.js';
+import { DIKey } from '@/model/DIKey';
 import {
   AnyBinding,
   BindingKind,
@@ -8,9 +8,9 @@ import {
   SetBinding,
   WeakSetBinding,
   InstanceBinding,
-} from '../model/Binding.js';
-import { Activation, Axis, AxisPoint } from '../model/Activation.js';
-import { ModuleDef } from '../dsl/ModuleDef.js';
+} from '@/model/Binding';
+import { Activation, Axis, AxisPoint } from '@/model/Activation';
+import { ModuleDef } from '@/dsl/ModuleDef';
 import {
   Plan,
   PlanStep,
@@ -18,8 +18,8 @@ import {
   CircularDependencyError,
   ConflictingBindingsError,
   AxisConflictError,
-} from './Plan.js';
-import { getConstructorDependencies } from './Functoid.js';
+} from '@/core/Plan';
+import { getConstructorDependencies } from '@/core/Functoid';
 
 /**
  * Tracks valid and invalid axis choices along the current traversal path.
@@ -154,7 +154,7 @@ export class Planner {
     module: ModuleDef,
     roots: DIKey[],
     activation: Activation = Activation.empty(),
-    parentLocator?: import('./Locator.js').Locator
+    parentLocator?: import('@/core/Locator').Locator
   ): Plan {
     // Group bindings by key (no filtering yet - we'll filter during traversal)
     const bindingIndex = this.groupBindings(module.getBindings());
@@ -270,7 +270,7 @@ export class Planner {
     visiting: Set<string>,
     visited: Set<string>,
     path: DIKey[],
-    parentLocator?: import('./Locator.js').Locator,
+    parentLocator?: import('@/core/Locator').Locator,
   ): void {
     const keyStr = key.toMapKey();
 

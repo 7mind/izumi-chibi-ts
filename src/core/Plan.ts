@@ -1,5 +1,5 @@
-import { DIKey } from '../model/DIKey.js';
-import { AnyBinding } from '../model/Binding.js';
+import { DIKey } from '@/model/DIKey';
+import { AnyBinding } from '@/model/Binding';
 
 /**
  * A step in the execution plan that describes how to create an instance

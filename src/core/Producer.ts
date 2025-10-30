@@ -1,4 +1,4 @@
-import { DIKey } from '../model/DIKey.js';
+import { DIKey } from '@/model/DIKey';
 import {
   AnyBinding,
   BindingKind,
@@ -9,10 +9,10 @@ import {
   SetBinding,
   WeakSetBinding,
   AssistedFactoryBinding,
-} from '../model/Binding.js';
-import { Plan, PlanStep } from './Plan.js';
-import { Locator, LocatorImpl } from './Locator.js';
-import { getConstructorDependencies } from './Functoid.js';
+} from '@/model/Binding';
+import { Plan, PlanStep } from '@/core/Plan';
+import { Locator, LocatorImpl } from '@/core/Locator';
+import { getConstructorDependencies } from '@/core/Functoid';
 
 /**
  * The Producer executes a Plan to create instances.
