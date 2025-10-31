@@ -19,16 +19,17 @@ export {
   ConflictingBindingsError,
 } from '@/distage/core/Plan';
 export type { PlanStep } from '@/distage/core/Plan';
-export { Functoid, getConstructorParameters, getConstructorDependencies } from '@/distage/core/Functoid';
+export { Functoid } from '@/distage/core/Functoid';
 export type { ParameterInfo } from '@/distage/core/Functoid';
 
 // DSL
 export { ModuleDef, BindingBuilder, SetBindingBuilder } from '@/distage/dsl/ModuleDef';
 
 // Model
-export { DIKey, ID_METADATA_KEY, PARAM_IDS_METADATA_KEY } from '@/distage/model/DIKey';
+export { DIKey, ID_METADATA_KEY, PARAM_IDS_METADATA_KEY, TypeTag } from '@/distage/model/DIKey';
+export type { Callable, TypeTag as TypeTagType, PrimitiveType } from '@/distage/model/DIKey';
 export { Id, getParameterId, getAllParameterIds } from '@/distage/model/Id';
-export { Injectable } from '@/distage/model/Injectable';
+export { Reflected, getConstructorTypes } from '@/distage/model/Reflected';
 export { Axis, AxisPoint, Activation, BindingTags } from '@/distage/model/Activation';
 export { BindingKind, Bindings } from '@/distage/model/Binding';
 export type {
@@ -43,6 +44,3 @@ export type {
   AnyBinding,
 } from '@/distage/model/Binding';
 export { Lifecycle, LifecycleManager, AggregateLifecycleError } from '@/distage/model/Lifecycle';
-
-// Re-export reflect-metadata for convenience
-import 'reflect-metadata';

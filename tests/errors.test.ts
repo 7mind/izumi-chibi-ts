@@ -5,8 +5,8 @@ import {
   DIKey,
   MissingDependencyError,
   CircularDependencyError,
-  Injectable,
   Functoid,
+  Reflected,
 } from '../src/distage';
 
 describe('Error Handling', () => {
@@ -26,13 +26,13 @@ describe('Error Handling', () => {
 
     // Use factories to define circular dependencies at DI level
     const module = new ModuleDef()
-      .make(ServiceA).fromFactory(
+      .make(ServiceA).from().factory(
         Functoid.fromFunction((b: any) => new ServiceA(b)).withTypes([ServiceB])
       )
-      .make(ServiceB).fromFactory(
+      .make(ServiceB).from().factory(
         Functoid.fromFunction((c: any) => new ServiceB(c)).withTypes([ServiceC])
       )
-      .make(ServiceC).fromFactory(
+      .make(ServiceC).from().factory(
         Functoid.fromFunction((a: any) => new ServiceC(a)).withTypes([ServiceA])
       );
 
@@ -44,18 +44,17 @@ describe('Error Handling', () => {
   });
 
   it('should detect missing dependencies', () => {
-    @Injectable()
-    class MissingService {
+        class MissingService {
       value = 'missing';
     }
 
-    @Injectable()
+    @Reflected(MissingService)
     class DependsOnMissing {
       constructor(public readonly missing: MissingService) {}
     }
 
     const module = new ModuleDef()
-      .make(DependsOnMissing).fromSelf();
+      .make(DependsOnMissing).from().type(DependsOnMissing);
     // Note: MissingService is not bound
 
     const injector = new Injector();
@@ -66,18 +65,17 @@ describe('Error Handling', () => {
   });
 
   it('should provide helpful error messages for missing dependencies', () => {
-    @Injectable()
-    class MissingService {
+        class MissingService {
       value = 'missing';
     }
 
-    @Injectable()
+    @Reflected(MissingService)
     class DependsOnMissing {
       constructor(public readonly missing: MissingService) {}
     }
 
     const module = new ModuleDef()
-      .make(DependsOnMissing).fromSelf();
+      .make(DependsOnMissing).from().type(DependsOnMissing);
 
     const injector = new Injector();
 
@@ -106,13 +104,13 @@ describe('Error Handling', () => {
     }
 
     const module = new ModuleDef()
-      .make(ServiceA).fromFactory(
+      .make(ServiceA).from().factory(
         Functoid.fromFunction((b: any) => new ServiceA(b)).withTypes([ServiceB])
       )
-      .make(ServiceB).fromFactory(
+      .make(ServiceB).from().factory(
         Functoid.fromFunction((c: any) => new ServiceB(c)).withTypes([ServiceC])
       )
-      .make(ServiceC).fromFactory(
+      .make(ServiceC).from().factory(
         Functoid.fromFunction((a: any) => new ServiceC(a)).withTypes([ServiceA])
       );
 
@@ -130,19 +128,18 @@ describe('Error Handling', () => {
   });
 
   it('should detect missing @Id dependencies', () => {
-    @Injectable()
-    class MissingService {
+        class MissingService {
       value = 'missing';
     }
 
-    @Injectable()
+    @Reflected(MissingService)
     class NeedsNamedDep {
       constructor(public readonly dep: MissingService) {}
     }
 
     const module = new ModuleDef()
-      .make(MissingService).named('other').fromValue(new MissingService())
-      .make(NeedsNamedDep).fromSelf();
+      .make(MissingService).named('other').from().value(new MissingService())
+      .make(NeedsNamedDep).from().type(NeedsNamedDep);
     // Note: MissingService without ID is not bound, only 'other' is
 
     const injector = new Injector();

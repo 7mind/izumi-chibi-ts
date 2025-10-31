@@ -1,32 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Injectable, Axis, AxisPoint, Activation } from '../src/distage';
+import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Reflected } from '../src/distage';
 
 describe('New DSL Syntax (izumi-chibi-py style)', () => {
-  @Injectable()
-  class Config {
+    class Config {
     constructor(public readonly value: string) {}
   }
 
-  @Injectable()
-  abstract class Database {
+    abstract class Database {
     abstract query(sql: string): string;
   }
 
-  @Injectable()
-  class PostgresDatabase extends Database {
+    class PostgresDatabase extends Database {
     query(sql: string): string {
       return `[Postgres] ${sql}`;
     }
   }
 
-  @Injectable()
-  class MySQLDatabase extends Database {
+    class MySQLDatabase extends Database {
     query(sql: string): string {
       return `[MySQL] ${sql}`;
     }
   }
 
-  @Injectable()
+  @Reflected(Database, Config)
   class UserService {
     constructor(
       public readonly db: Database,
@@ -127,20 +123,17 @@ describe('New DSL Syntax (izumi-chibi-py style)', () => {
   });
 
   it('should work with set bindings', () => {
-    @Injectable()
-    abstract class Plugin {
+        abstract class Plugin {
       abstract getName(): string;
     }
 
-    @Injectable()
-    class AuthPlugin extends Plugin {
+        class AuthPlugin extends Plugin {
       getName(): string {
         return 'auth';
       }
     }
 
-    @Injectable()
-    class LoggingPlugin extends Plugin {
+        class LoggingPlugin extends Plugin {
       getName(): string {
         return 'logging';
       }
@@ -152,7 +145,7 @@ describe('New DSL Syntax (izumi-chibi-py style)', () => {
 
     const injector = new Injector();
     const locator = injector.produce(module, [DIKey.set(Plugin as any)]);
-    const plugins = locator.getSet(Plugin as any);
+    const plugins = locator.getSet(Plugin as any) as Set<Plugin>;
 
     expect(plugins.size).toBe(2);
     const names = Array.from(plugins).map(p => p.getName()).sort();

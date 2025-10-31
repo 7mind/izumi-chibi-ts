@@ -3,29 +3,27 @@ import {
   Injector,
   ModuleDef,
   DIKey,
-  Injectable,
   Subcontext,
   createSubcontext,
+  Reflected,
 } from '../src/distage';
 
 describe('Subcontext', () => {
   describe('Basic Subcontext Operations', () => {
-    @Injectable()
-    class Config {
+        class Config {
       constructor(public readonly value: string) {}
     }
 
-    @Injectable()
+    @Reflected(Config)
     class ParentService {
       constructor(public readonly config: Config) {}
     }
 
-    @Injectable()
-    class RequestId {
+        class RequestId {
       constructor(public readonly id: string) {}
     }
 
-    @Injectable()
+    @Reflected(RequestId, ParentService)
     class RequestHandler {
       constructor(
         public readonly requestId: RequestId,
@@ -139,22 +137,19 @@ describe('Subcontext', () => {
   });
 
   describe('Nested Subcontexts', () => {
-    @Injectable()
-    class Level1 {
+        class Level1 {
       constructor(public readonly value: string) {}
     }
 
-    @Injectable()
-    class Level2 {
+        class Level2 {
       constructor(public readonly value: string) {}
     }
 
-    @Injectable()
-    class Level3 {
+        class Level3 {
       constructor(public readonly value: string) {}
     }
 
-    @Injectable()
+    @Reflected(Level1, Level2, Level3)
     class Service {
       constructor(
         public readonly l1: Level1,
@@ -201,20 +196,17 @@ describe('Subcontext', () => {
   });
 
   describe('Set Bindings in Subcontext', () => {
-    @Injectable()
-    abstract class Plugin {
+        abstract class Plugin {
       abstract getName(): string;
     }
 
-    @Injectable()
-    class ParentPlugin extends Plugin {
+        class ParentPlugin extends Plugin {
       getName(): string {
         return 'parent-plugin';
       }
     }
 
-    @Injectable()
-    class ChildPlugin extends Plugin {
+        class ChildPlugin extends Plugin {
       getName(): string {
         return 'child-plugin';
       }
@@ -237,7 +229,7 @@ describe('Subcontext', () => {
       );
 
       // Should contain plugins from both parent and child
-      const plugins = subcontext.getSet(Plugin as any);
+      const plugins = subcontext.getSet(Plugin as any) as Set<Plugin>;
       expect(plugins.size).toBe(2);
 
       const names = Array.from(plugins).map(p => p.getName()).sort();
@@ -269,19 +261,17 @@ describe('Subcontext', () => {
 
   describe('Real-world Example: Web Request Handling', () => {
     // Application-level services
-    @Injectable()
-    class AppConfig {
+        class AppConfig {
       constructor(public readonly port: number) {}
     }
 
-    @Injectable()
-    class DatabaseConnection {
+        class DatabaseConnection {
       query(sql: string): string {
         return `Result: ${sql}`;
       }
     }
 
-    @Injectable()
+    @Reflected(DatabaseConnection)
     class UserRepository {
       constructor(private readonly db: DatabaseConnection) {}
 
@@ -291,15 +281,14 @@ describe('Subcontext', () => {
     }
 
     // Request-level services
-    @Injectable()
-    class RequestContext {
+        class RequestContext {
       constructor(
         public readonly requestId: string,
         public readonly userId: string,
       ) {}
     }
 
-    @Injectable()
+    @Reflected(RequestContext, UserRepository)
     class CurrentUser {
       constructor(
         private readonly ctx: RequestContext,
@@ -311,7 +300,7 @@ describe('Subcontext', () => {
       }
     }
 
-    @Injectable()
+    @Reflected(CurrentUser, RequestContext)
     class RequestHandler {
       constructor(
         private readonly currentUser: CurrentUser,
@@ -384,15 +373,13 @@ describe('Subcontext', () => {
       const parentClosed: string[] = [];
       const childClosed: string[] = [];
 
-      @Injectable()
-      class ParentService {
+            class ParentService {
         constructor() {
           // Mark for cleanup
         }
       }
 
-      @Injectable()
-      class ChildService {
+            class ChildService {
         constructor() {
           // Mark for cleanup
         }
@@ -422,8 +409,7 @@ describe('Subcontext', () => {
   });
 
   describe('Subcontext with getByType methods', () => {
-    @Injectable()
-    class Config {
+        class Config {
       value = 'config';
     }
 

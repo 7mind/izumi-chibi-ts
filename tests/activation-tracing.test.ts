@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Injectable } from '../src/distage';
+import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Functoid, Reflected } from '../src/distage';
 
 /**
  * Tests for path-aware activation tracing.
@@ -15,26 +15,22 @@ describe('Path-Aware Activation Tracing', () => {
   const Region = Axis.of('Region', ['US', 'EU']);
 
   // Test scenario: Database connections that vary by environment and region
-  @Injectable()
   abstract class Database {
     abstract query(sql: string): string;
   }
 
-  @Injectable()
   class ProdUSDatabase extends Database {
     query(sql: string): string {
       return `[Prod-US] ${sql}`;
     }
   }
 
-  @Injectable()
   class ProdEUDatabase extends Database {
     query(sql: string): string {
       return `[Prod-EU] ${sql}`;
     }
   }
 
-  @Injectable()
   class TestDatabase extends Database {
     query(sql: string): string {
       return `[Test] ${sql}`;
@@ -42,20 +38,19 @@ describe('Path-Aware Activation Tracing', () => {
   }
 
   // Repository depends on Database
-  @Injectable()
   abstract class Repository {
     constructor(protected db: Database) {}
     abstract getData(): string;
   }
 
-  @Injectable()
+  // Note: These classes don't need @Injectable because they inherit the constructor from Repository
+  // and don't have explicit constructors. Use .withDeps() in the binding instead.
   class ProdRepository extends Repository {
     getData(): string {
       return `Prod: ${this.db.query('SELECT * FROM data')}`;
     }
   }
 
-  @Injectable()
   class TestRepository extends Repository {
     getData(): string {
       return `Test: ${this.db.query('SELECT * FROM test_data')}`;
@@ -63,7 +58,7 @@ describe('Path-Aware Activation Tracing', () => {
   }
 
   // Service depends on Repository
-  @Injectable()
+  @Reflected(Repository)
   class DataService {
     constructor(public repo: Repository) {}
 
@@ -79,25 +74,27 @@ describe('Path-Aware Activation Tracing', () => {
       .make(Database as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
-        .fromClass(ProdUSDatabase)
+        .from().type(ProdUSDatabase)
       .make(Database as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'EU')
-        .fromClass(ProdEUDatabase)
+        .from().type(ProdEUDatabase)
       .make(Database as any)
         .tagged(Environment, 'Test')
-        .fromClass(TestDatabase)
+        .from().type(TestDatabase)
 
       // Repository bindings
       .make(Repository as any)
         .tagged(Environment, 'Prod')
-        .fromClass(ProdRepository)
+        .withDeps([Database])
+        .from().type(ProdRepository)
       .make(Repository as any)
         .tagged(Environment, 'Test')
-        .fromClass(TestRepository)
+        .withDeps([Database])
+        .from().type(TestRepository)
 
       // Service binding (no tags)
-      .make(DataService).fromSelf();
+      .make(DataService).from().type(DataService);
 
     const injector = new Injector();
 
@@ -138,8 +135,7 @@ describe('Path-Aware Activation Tracing', () => {
   });
 
   it('should detect axis conflicts when path constraints are incompatible', () => {
-    @Injectable()
-    class ConflictingService {
+      class ConflictingService {
       constructor(public db: Database) {}
     }
 
@@ -149,10 +145,11 @@ describe('Path-Aware Activation Tracing', () => {
       .make(Database as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
-        .fromClass(ProdUSDatabase)
+        .from().type(ProdUSDatabase)
       .make(ConflictingService)
         .tagged(Environment, 'Test')
-        .fromSelf();
+        .withDeps([Database])
+        .from().type(ConflictingService);
 
     const injector = new Injector();
 
@@ -172,13 +169,11 @@ describe('Path-Aware Activation Tracing', () => {
 
   it('should handle multi-level axis constraint propagation', () => {
     // Three-level dependency chain
-    @Injectable()
-    class Config {
+      class Config {
       constructor(public readonly env: string) {}
     }
 
-    @Injectable()
-    class Logger {
+      class Logger {
       constructor(public config: Config) {}
 
       log(msg: string): string {
@@ -186,20 +181,19 @@ describe('Path-Aware Activation Tracing', () => {
       }
     }
 
-    @Injectable()
-    class Application {
+      class Application {
       constructor(public logger: Logger) {}
     }
 
     const module = new ModuleDef()
       .make(Config)
         .tagged(Environment, 'Prod')
-        .fromValue(new Config('production'))
+        .from().value(new Config('production'))
       .make(Config)
         .tagged(Environment, 'Test')
-        .fromValue(new Config('test'))
-      .make(Logger).fromSelf()
-      .make(Application).fromSelf();
+        .from().value(new Config('test'))
+      .make(Logger).withDeps([Config]).from().type(Logger)
+      .make(Application).withDeps([Logger]).from().type(Application);
 
     const injector = new Injector();
 
@@ -220,15 +214,13 @@ describe('Path-Aware Activation Tracing', () => {
 
   it('should allow untagged bindings to be used in any path', () => {
     // Common service with no axis tags
-    @Injectable()
-    class CommonService {
+      class CommonService {
       getValue(): string {
         return 'common';
       }
     }
 
-    @Injectable()
-    class EnvironmentSpecificService {
+      class EnvironmentSpecificService {
       constructor(
         public common: CommonService,
         public db: Database,
@@ -236,19 +228,21 @@ describe('Path-Aware Activation Tracing', () => {
     }
 
     const module = new ModuleDef()
-      .make(CommonService).fromSelf() // No tags - available everywhere
+      .make(CommonService).from().type(CommonService) // No tags - available everywhere
       .make(Database as any)
         .tagged(Environment, 'Prod')
-        .fromClass(ProdUSDatabase)
+        .from().type(ProdUSDatabase)
       .make(Database as any)
         .tagged(Environment, 'Test')
-        .fromClass(TestDatabase)
+        .from().type(TestDatabase)
       .make(EnvironmentSpecificService)
         .tagged(Environment, 'Prod')
-        .fromSelf()
+        .withDeps([CommonService, Database])
+        .from().type(EnvironmentSpecificService)
       .make(EnvironmentSpecificService)
         .tagged(Environment, 'Test')
-        .fromSelf();
+        .withDeps([CommonService, Database])
+        .from().type(EnvironmentSpecificService);
 
     const injector = new Injector();
 
@@ -270,8 +264,7 @@ describe('Path-Aware Activation Tracing', () => {
 
   it('should handle bindings with partial axis tags correctly', () => {
     // A service tagged only with Environment but not Region
-    @Injectable()
-    class RegionAgnosticService {
+      class RegionAgnosticService {
       constructor(public db: Database) {}
     }
 
@@ -279,14 +272,15 @@ describe('Path-Aware Activation Tracing', () => {
       .make(Database as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
-        .fromClass(ProdUSDatabase)
+        .from().type(ProdUSDatabase)
       .make(Database as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'EU')
-        .fromClass(ProdEUDatabase)
+        .from().type(ProdEUDatabase)
       .make(RegionAgnosticService)
         .tagged(Environment, 'Prod') // Only env tag, no region tag
-        .fromSelf();
+        .withDeps([Database])
+        .from().type(RegionAgnosticService);
 
     const injector = new Injector();
 
@@ -311,29 +305,27 @@ describe('Path-Aware Activation Tracing', () => {
   });
 
   it('should use most specific binding when multiple bindings match path constraints', () => {
-    @Injectable()
-    class GenericDatabase extends Database {
+      class GenericDatabase extends Database {
       query(sql: string): string {
         return `[Generic] ${sql}`;
       }
     }
 
-    @Injectable()
-    class SimpleService {
+      class SimpleService {
       constructor(public db: Database) {}
     }
 
     const module = new ModuleDef()
       .make(Database as any)
-        .fromClass(GenericDatabase) // No tags - specificity 0
+        .from().type(GenericDatabase) // No tags - specificity 0
       .make(Database as any)
         .tagged(Environment, 'Prod')
-        .fromClass(ProdUSDatabase) // 1 tag - specificity 1
+        .from().type(ProdUSDatabase) // 1 tag - specificity 1
       .make(Database as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
-        .fromClass(ProdUSDatabase) // 2 tags - specificity 2
-      .make(SimpleService).fromSelf();
+        .from().type(ProdUSDatabase) // 2 tags - specificity 2
+      .make(SimpleService).withDeps([Database]).from().type(SimpleService);
 
     const injector = new Injector();
 
@@ -364,37 +356,31 @@ describe('Path-Aware Activation Tracing', () => {
 
   it('should handle diamond dependencies with consistent axis constraints', () => {
     // Diamond pattern: App -> [ServiceA, ServiceB] -> SharedResource
-    @Injectable()
-    abstract class SharedResource {
+      abstract class SharedResource {
       abstract getValue(): string;
     }
 
-    @Injectable()
-    class ProdResource extends SharedResource {
+      class ProdResource extends SharedResource {
       getValue(): string {
         return 'prod-resource';
       }
     }
 
-    @Injectable()
-    class TestResource extends SharedResource {
+      class TestResource extends SharedResource {
       getValue(): string {
         return 'test-resource';
       }
     }
 
-    @Injectable()
-    class ServiceA {
+      class ServiceA {
       constructor(public resource: SharedResource) {}
     }
 
-    @Injectable()
-    class ServiceB {
+      class ServiceB {
       constructor(public resource: SharedResource) {}
     }
 
-    @Injectable()
-    class Application {
+      class Application {
       constructor(
         public serviceA: ServiceA,
         public serviceB: ServiceB,
@@ -404,13 +390,13 @@ describe('Path-Aware Activation Tracing', () => {
     const module = new ModuleDef()
       .make(SharedResource as any)
         .tagged(Environment, 'Prod')
-        .fromClass(ProdResource)
+        .from().type(ProdResource)
       .make(SharedResource as any)
         .tagged(Environment, 'Test')
-        .fromClass(TestResource)
-      .make(ServiceA).fromSelf()
-      .make(ServiceB).fromSelf()
-      .make(Application).fromSelf();
+        .from().type(TestResource)
+      .make(ServiceA).withDeps([SharedResource]).from().type(ServiceA)
+      .make(ServiceB).withDeps([SharedResource]).from().type(ServiceB)
+      .make(Application).withDeps([ServiceA, ServiceB]).from().type(Application);
 
     const injector = new Injector();
 
@@ -427,22 +413,19 @@ describe('Path-Aware Activation Tracing', () => {
   });
 
   it('should reject inconsistent axis constraints in different branches', () => {
-    @Injectable()
-    class ServiceA {
+      class ServiceA {
       getValue(): string {
         return 'A';
       }
     }
 
-    @Injectable()
-    class ServiceB {
+      class ServiceB {
       getValue(): string {
         return 'B';
       }
     }
 
-    @Injectable()
-    class Application {
+      class Application {
       constructor(
         public serviceA: ServiceA,
         public serviceB: ServiceB,
@@ -453,11 +436,11 @@ describe('Path-Aware Activation Tracing', () => {
     const module = new ModuleDef()
       .make(ServiceA)
         .tagged(Environment, 'Prod')
-        .fromSelf()
+        .from().type(ServiceA)
       .make(ServiceB)
         .tagged(Environment, 'Test')
-        .fromSelf()
-      .make(Application).fromSelf();
+        .from().type(ServiceB)
+      .make(Application).withDeps([ServiceA, ServiceB]).from().type(Application);
 
     const injector = new Injector();
 
@@ -476,8 +459,7 @@ describe('Path-Aware Activation Tracing', () => {
   it('should handle three-axis constraint propagation', () => {
     const Cloud = Axis.of('Cloud', ['AWS', 'Azure', 'GCP']);
 
-    @Injectable()
-    class Storage {
+      class Storage {
       constructor(
         public readonly env: string,
         public readonly region: string,
@@ -489,8 +471,7 @@ describe('Path-Aware Activation Tracing', () => {
       }
     }
 
-    @Injectable()
-    class DataService {
+      class DataService {
       constructor(public storage: Storage) {}
     }
 
@@ -499,18 +480,18 @@ describe('Path-Aware Activation Tracing', () => {
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
         .tagged(Cloud, 'AWS')
-        .fromValue(new Storage('prod', 'us', 'aws'))
+        .from().value(new Storage('prod', 'us', 'aws'))
       .make(Storage)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'EU')
         .tagged(Cloud, 'Azure')
-        .fromValue(new Storage('prod', 'eu', 'azure'))
+        .from().value(new Storage('prod', 'eu', 'azure'))
       .make(Storage)
         .tagged(Environment, 'Test')
         .tagged(Region, 'US')
         .tagged(Cloud, 'GCP')
-        .fromValue(new Storage('test', 'us', 'gcp'))
-      .make(DataService).fromSelf();
+        .from().value(new Storage('test', 'us', 'gcp'))
+      .make(DataService).withDeps([Storage]).from().type(DataService);
 
     const injector = new Injector();
 
@@ -547,32 +528,31 @@ describe('Path-Aware Activation Tracing', () => {
   });
 
   it('should handle mixed tagged and untagged dependencies in path', () => {
-    @Injectable()
-    class UntaggedBase {
+      class UntaggedBase {
       getValue(): string {
         return 'base';
       }
     }
 
-    @Injectable()
-    class TaggedMiddle {
+      class TaggedMiddle {
       constructor(public base: UntaggedBase) {}
     }
 
-    @Injectable()
-    class UntaggedTop {
+      class UntaggedTop {
       constructor(public middle: TaggedMiddle) {}
     }
 
     const module = new ModuleDef()
-      .make(UntaggedBase).fromSelf() // No tags
+      .make(UntaggedBase).from().type(UntaggedBase) // No tags
       .make(TaggedMiddle)
         .tagged(Environment, 'Prod')
-        .fromSelf()
+        .withDeps([UntaggedBase])
+        .from().type(TaggedMiddle)
       .make(TaggedMiddle)
         .tagged(Environment, 'Test')
-        .fromSelf()
-      .make(UntaggedTop).fromSelf(); // No tags
+        .withDeps([UntaggedBase])
+        .from().type(TaggedMiddle)
+      .make(UntaggedTop).withDeps([TaggedMiddle]).from().type(UntaggedTop); // No tags
 
     const injector = new Injector();
 
@@ -591,44 +571,40 @@ describe('Path-Aware Activation Tracing', () => {
   });
 
   it('should propagate constraints through alias bindings', () => {
-    @Injectable()
-    abstract class ICache {
+      abstract class ICache {
       abstract get(key: string): string;
     }
 
-    @Injectable()
-    class RedisCache extends ICache {
+      class RedisCache extends ICache {
       get(key: string): string {
         return `redis:${key}`;
       }
     }
 
-    @Injectable()
-    class MemoryCache extends ICache {
+      class MemoryCache extends ICache {
       get(key: string): string {
         return `memory:${key}`;
       }
     }
 
-    @Injectable()
-    class CacheManager {
+      class CacheManager {
       constructor(public cache: ICache) {}
     }
 
     const module = new ModuleDef()
       .make(RedisCache)
         .tagged(Environment, 'Prod')
-        .fromSelf()
+        .from().type(RedisCache)
       .make(MemoryCache)
         .tagged(Environment, 'Test')
-        .fromSelf()
+        .from().type(MemoryCache)
       .make(ICache as any)
         .tagged(Environment, 'Prod')
-        .fromAlias(RedisCache)
+        .from().alias(RedisCache)
       .make(ICache as any)
         .tagged(Environment, 'Test')
-        .fromAlias(MemoryCache)
-      .make(CacheManager).fromSelf();
+        .from().alias(MemoryCache)
+      .make(CacheManager).withDeps([ICache]).from().type(CacheManager);
 
     const injector = new Injector();
 
@@ -652,40 +628,34 @@ describe('Set Bindings with Axis Constraints', () => {
   const Environment = Axis.of('Environment', ['Prod', 'Test']);
   const Region = Axis.of('Region', ['US', 'EU']);
 
-  @Injectable()
   abstract class Plugin {
     abstract getName(): string;
   }
 
-  @Injectable()
   class CorePlugin extends Plugin {
     getName(): string {
       return 'core';
     }
   }
 
-  @Injectable()
   class ProdPlugin extends Plugin {
     getName(): string {
       return 'prod-plugin';
     }
   }
 
-  @Injectable()
   class TestPlugin extends Plugin {
     getName(): string {
       return 'test-plugin';
     }
   }
 
-  @Injectable()
   class USPlugin extends Plugin {
     getName(): string {
       return 'us-plugin';
     }
   }
 
-  @Injectable()
   class EUPlugin extends Plugin {
     getName(): string {
       return 'eu-plugin';
@@ -702,19 +672,19 @@ describe('Set Bindings with Axis Constraints', () => {
 
   it('should filter set elements based on path activation', () => {
     const module = new ModuleDef()
-      .many(Plugin as any).addValue(new CorePlugin()) // No tags - always included
+      .many(Plugin as any).from().value(new CorePlugin()) // No tags - always included
       .many(Plugin as any)
         .tagged(Environment, 'Prod')
-        .addValue(new ProdPlugin())
+        .from().value(new ProdPlugin())
       .many(Plugin as any)
         .tagged(Environment, 'Test')
-        .addValue(new TestPlugin())
+        .from().value(new TestPlugin())
       .many(Plugin as any)
         .tagged(Region, 'US')
-        .addValue(new USPlugin())
+        .from().value(new USPlugin())
       .many(Plugin as any)
         .tagged(Region, 'EU')
-        .addValue(new EUPlugin());
+        .from().value(new EUPlugin());
 
     const injector = new Injector();
 
@@ -726,7 +696,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const prodUSLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: prodUSActivation,
     });
-    const prodUSPlugins = prodUSLocator.getSet(Plugin as any);
+    const prodUSPlugins = prodUSLocator.getSet(Plugin as any) as Set<Plugin>;
     const prodUSManager = new PluginManager(prodUSPlugins);
     expect(prodUSManager.getPluginNames()).toEqual(['core', 'prod-plugin', 'us-plugin']);
 
@@ -738,39 +708,35 @@ describe('Set Bindings with Axis Constraints', () => {
     const testEULocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: testEUActivation,
     });
-    const testEUPlugins = testEULocator.getSet(Plugin as any);
+    const testEUPlugins = testEULocator.getSet(Plugin as any) as Set<Plugin>;
     const testEUManager = new PluginManager(testEUPlugins);
     expect(testEUManager.getPluginNames()).toEqual(['core', 'eu-plugin', 'test-plugin']);
 
     // No activation should get only core (untagged)
     const noActivationLocator = injector.produce(module, [DIKey.set(Plugin as any)]);
-    const noActivationPlugins = noActivationLocator.getSet(Plugin as any);
+    const noActivationPlugins = noActivationLocator.getSet(Plugin as any) as Set<Plugin>;
     const noActivationManager = new PluginManager(noActivationPlugins);
     expect(noActivationManager.getPluginNames()).toEqual(['core']);
   });
 
   it('should handle set elements with dependencies that have axis constraints', () => {
-    @Injectable()
-    abstract class Logger {
+      abstract class Logger {
       abstract log(msg: string): string;
     }
 
-    @Injectable()
-    class ProdLogger extends Logger {
+      class ProdLogger extends Logger {
       log(msg: string): string {
         return `[PROD] ${msg}`;
       }
     }
 
-    @Injectable()
-    class TestLogger extends Logger {
+      class TestLogger extends Logger {
       log(msg: string): string {
         return `[TEST] ${msg}`;
       }
     }
 
-    @Injectable()
-    class PluginWithLogger extends Plugin {
+      class PluginWithLogger extends Plugin {
       constructor(private logger: Logger) {
         super();
       }
@@ -783,14 +749,16 @@ describe('Set Bindings with Axis Constraints', () => {
     const module = new ModuleDef()
       .make(Logger as any)
         .tagged(Environment, 'Prod')
-        .fromClass(ProdLogger)
+        .from().type(ProdLogger)
       .make(Logger as any)
         .tagged(Environment, 'Test')
-        .fromClass(TestLogger)
-      .many(Plugin as any).addValue(new CorePlugin())
+        .from().type(TestLogger)
+      .many(Plugin as any).from().value(new CorePlugin())
       .many(Plugin as any)
         .tagged(Environment, 'Prod')
-        .addClass(PluginWithLogger); // Has Logger dependency
+        .from().factory(
+          Functoid.fromConstructor(PluginWithLogger).withTypes([Logger])
+        ); // Has Logger dependency
 
     const injector = new Injector();
 
@@ -799,7 +767,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const prodLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: prodActivation,
     });
-    const prodPlugins = prodLocator.getSet(Plugin as any);
+    const prodPlugins = prodLocator.getSet(Plugin as any) as Set<Plugin>;
     const prodManager = new PluginManager(prodPlugins);
     const names = prodManager.getPluginNames();
     expect(names).toContain('core');
@@ -810,21 +778,19 @@ describe('Set Bindings with Axis Constraints', () => {
     const testLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: testActivation,
     });
-    const testPlugins = testLocator.getSet(Plugin as any);
+    const testPlugins = testLocator.getSet(Plugin as any) as Set<Plugin>;
     const testManager = new PluginManager(testPlugins);
     expect(testManager.getPluginNames()).toEqual(['core']);
   });
 
   it('should handle weak set elements that fail due to axis conflicts', () => {
-    @Injectable()
-    class Database {
+      class Database {
       query(): string {
         return 'query-result';
       }
     }
 
-    @Injectable()
-    class PluginWithDB extends Plugin {
+      class PluginWithDB extends Plugin {
       constructor(private db: Database) {
         super();
       }
@@ -837,12 +803,14 @@ describe('Set Bindings with Axis Constraints', () => {
     const module = new ModuleDef()
       .make(Database)
         .tagged(Environment, 'Prod')
-        .fromSelf()
-      .many(Plugin as any).addValue(new CorePlugin())
+        .from().type(Database)
+      .many(Plugin as any).from().value(new CorePlugin())
       .many(Plugin as any)
         .makeWeak()
         .tagged(Environment, 'Test') // Requires Test environment
-        .addClass(PluginWithDB); // But DB only available in Prod
+        .from().factory(
+          Functoid.fromConstructor(PluginWithDB).withTypes([Database])
+        ); // But DB only available in Prod
 
     const injector = new Injector();
 
@@ -852,7 +820,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const testLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: testActivation,
     });
-    const testPlugins = testLocator.getSet(Plugin as any);
+    const testPlugins = testLocator.getSet(Plugin as any) as Set<Plugin>;
     const testManager = new PluginManager(testPlugins);
     // Should only have core, not the weak plugin with conflicting dependency
     expect(testManager.getPluginNames()).toEqual(['core']);
@@ -862,7 +830,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const prodLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: prodActivation,
     });
-    const prodPlugins = prodLocator.getSet(Plugin as any);
+    const prodPlugins = prodLocator.getSet(Plugin as any) as Set<Plugin>;
     const prodManager = new PluginManager(prodPlugins);
     // Should only have core
     expect(prodManager.getPluginNames()).toEqual(['core']);
@@ -870,13 +838,13 @@ describe('Set Bindings with Axis Constraints', () => {
 
   it('should correctly accumulate set elements from multiple modules with axis tags', () => {
     const module = new ModuleDef()
-      .many(Plugin as any).addValue(new CorePlugin())
+      .many(Plugin as any).from().value(new CorePlugin())
       .many(Plugin as any)
         .tagged(Environment, 'Prod')
-        .addValue(new ProdPlugin())
+        .from().value(new ProdPlugin())
       .many(Plugin as any)
         .tagged(Environment, 'Test')
-        .addValue(new TestPlugin());
+        .from().value(new TestPlugin());
 
     const injector = new Injector();
 
@@ -885,7 +853,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const prodLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: prodActivation,
     });
-    const prodPlugins = prodLocator.getSet(Plugin as any);
+    const prodPlugins = prodLocator.getSet(Plugin as any) as Set<Plugin>;
     const prodManager = new PluginManager(prodPlugins);
     expect(prodManager.getPluginNames()).toEqual(['core', 'prod-plugin']);
 
@@ -894,22 +862,20 @@ describe('Set Bindings with Axis Constraints', () => {
     const testLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: testActivation,
     });
-    const testPlugins = testLocator.getSet(Plugin as any);
+    const testPlugins = testLocator.getSet(Plugin as any) as Set<Plugin>;
     const testManager = new PluginManager(testPlugins);
     expect(testManager.getPluginNames()).toEqual(['core', 'test-plugin']);
   });
 
   it('should handle nested dependencies in set elements with multi-axis constraints', () => {
-    @Injectable()
-    class Config {
+      class Config {
       constructor(
         public readonly env: string,
         public readonly region: string,
       ) {}
     }
 
-    @Injectable()
-    class ConfigurablePlugin extends Plugin {
+      class ConfigurablePlugin extends Plugin {
       constructor(private config: Config) {
         super();
       }
@@ -923,24 +889,28 @@ describe('Set Bindings with Axis Constraints', () => {
       .make(Config)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
-        .fromValue(new Config('prod', 'us'))
+        .from().value(new Config('prod', 'us'))
       .make(Config)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'EU')
-        .fromValue(new Config('prod', 'eu'))
+        .from().value(new Config('prod', 'eu'))
       .make(Config)
         .tagged(Environment, 'Test')
         .tagged(Region, 'US')
-        .fromValue(new Config('test', 'us'))
-      .many(Plugin as any).addValue(new CorePlugin())
+        .from().value(new Config('test', 'us'))
+      .many(Plugin as any).from().value(new CorePlugin())
       .many(Plugin as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'US')
-        .addClass(ConfigurablePlugin)
+        .from().factory(
+          Functoid.fromConstructor(ConfigurablePlugin).withTypes([Config])
+        )
       .many(Plugin as any)
         .tagged(Environment, 'Prod')
         .tagged(Region, 'EU')
-        .addClass(ConfigurablePlugin);
+        .from().factory(
+          Functoid.fromConstructor(ConfigurablePlugin).withTypes([Config])
+        );
 
     const injector = new Injector();
 
@@ -952,7 +922,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const prodUSLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: prodUSActivation,
     });
-    const prodUSPlugins = prodUSLocator.getSet(Plugin as any);
+    const prodUSPlugins = prodUSLocator.getSet(Plugin as any) as Set<Plugin>;
     const prodUSManager = new PluginManager(prodUSPlugins);
     expect(prodUSManager.getPluginNames()).toEqual(['core', 'prod-us-plugin']);
 
@@ -964,7 +934,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const prodEULocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: prodEUActivation,
     });
-    const prodEUPlugins = prodEULocator.getSet(Plugin as any);
+    const prodEUPlugins = prodEULocator.getSet(Plugin as any) as Set<Plugin>;
     const prodEUManager = new PluginManager(prodEUPlugins);
     expect(prodEUManager.getPluginNames()).toEqual(['core', 'prod-eu-plugin']);
 
@@ -976,7 +946,7 @@ describe('Set Bindings with Axis Constraints', () => {
     const testUSLocator = injector.produce(module, [DIKey.set(Plugin as any)], {
       activation: testUSActivation,
     });
-    const testUSPlugins = testUSLocator.getSet(Plugin as any);
+    const testUSPlugins = testUSLocator.getSet(Plugin as any) as Set<Plugin>;
     const testUSManager = new PluginManager(testUSPlugins);
     expect(testUSManager.getPluginNames()).toEqual(['core']);
   });

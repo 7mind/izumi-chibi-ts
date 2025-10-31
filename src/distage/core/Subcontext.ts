@@ -26,7 +26,7 @@
 import { Locator, LocatorImpl } from '@/distage/core/Locator';
 import { Injector, InjectorOptions } from '@/distage/core/Injector';
 import { ModuleDef } from '@/distage/dsl/ModuleDef';
-import { DIKey } from '@/distage/model/DIKey';
+import { DIKey, Callable } from '@/distage/model/DIKey';
 import { Activation } from '@/distage/model/Activation';
 
 /**
@@ -75,14 +75,14 @@ export class Subcontext implements Locator {
   /**
    * Get an instance by type
    */
-  getByType<T>(type: new (...args: any[]) => T): T {
+  getByType<T>(type: Callable<T>): T {
     return this.get(DIKey.of(type));
   }
 
   /**
    * Get an instance by type and ID
    */
-  getByTypeAndId<T>(type: new (...args: any[]) => T, id: string): T {
+  getByTypeAndId<T>(type: Callable<T>, id: string): T {
     return this.get(DIKey.named(type, id));
   }
 
@@ -107,7 +107,7 @@ export class Subcontext implements Locator {
   /**
    * Get all instances of a set
    */
-  getSet<T>(type: new (...args: any[]) => T): Set<T> {
+  getSet<T>(type: Callable<T>): Set<T> {
     // Merge sets from parent and child
     const parentSet = this.parent.find(DIKey.set(type));
     const childSet = this.childLocator.find(DIKey.set(type));
@@ -127,7 +127,7 @@ export class Subcontext implements Locator {
   /**
    * Get all instances of a named set
    */
-  getNamedSet<T>(type: new (...args: any[]) => T, id: string): Set<T> {
+  getNamedSet<T>(type: Callable<T>, id: string): Set<T> {
     const parentSet = this.parent.find(DIKey.namedSet(type, id));
     const childSet = this.childLocator.find(DIKey.namedSet(type, id));
 

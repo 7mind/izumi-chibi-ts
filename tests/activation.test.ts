@@ -1,34 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Injectable } from '../src/distage';
+import { Injector, ModuleDef, DIKey, Axis, AxisPoint, Activation, Reflected } from '../src/distage';
 
 // Test classes
-@Injectable()
 abstract class MessageService {
   abstract send(msg: string): string;
 }
 
-@Injectable()
 class EmailService extends MessageService {
   send(msg: string): string {
     return `Email: ${msg}`;
   }
 }
 
-@Injectable()
 class SmsService extends MessageService {
   send(msg: string): string {
     return `SMS: ${msg}`;
   }
 }
 
-@Injectable()
 class PushService extends MessageService {
   send(msg: string): string {
     return `Push: ${msg}`;
   }
 }
 
-@Injectable()
+@Reflected(MessageService)
 class NotificationManager {
   constructor(public readonly service: MessageService) {}
 }
@@ -40,14 +36,14 @@ describe('Axis Tagging and Activation', () => {
     const module = new ModuleDef()
       .make(MessageService as any)
         .tagged(NotificationChannel, 'Email')
-        .fromClass(EmailService)
+        .from().type(EmailService)
       .make(MessageService as any)
         .tagged(NotificationChannel, 'SMS')
-        .fromClass(SmsService)
+        .from().type(SmsService)
       .make(MessageService as any)
         .tagged(NotificationChannel, 'Push')
-        .fromClass(PushService)
-      .make(NotificationManager).fromSelf();
+        .from().type(PushService)
+      .make(NotificationManager).from().type(NotificationManager);
 
     const injector = new Injector();
 
@@ -78,11 +74,11 @@ describe('Axis Tagging and Activation', () => {
 
   it('should support default bindings without tags', () => {
     const module = new ModuleDef()
-      .make(MessageService as any).fromClass(EmailService) // Default
+      .make(MessageService as any).from().type(EmailService) // Default
       .make(MessageService as any)
         .tagged(NotificationChannel, 'SMS')
-        .fromClass(SmsService)
-      .make(NotificationManager).fromSelf();
+        .from().type(SmsService)
+      .make(NotificationManager).from().type(NotificationManager);
 
     const injector = new Injector();
 
@@ -101,23 +97,22 @@ describe('Axis Tagging and Activation', () => {
   it('should prefer more specific bindings', () => {
     const Environment = Axis.of('Environment', ['Dev', 'Prod']);
 
-    @Injectable()
-    class DevEmailService extends EmailService {
+        class DevEmailService extends EmailService {
       send(msg: string): string {
         return `[DEV] Email: ${msg}`;
       }
     }
 
     const module = new ModuleDef()
-      .make(MessageService as any).fromClass(EmailService) // Default, no tags
+      .make(MessageService as any).from().type(EmailService) // Default, no tags
       .make(MessageService as any)
         .tagged(NotificationChannel, 'Email')
-        .fromClass(EmailService) // Tagged with channel only
+        .from().type(EmailService) // Tagged with channel only
       .make(MessageService as any)
         .tagged(NotificationChannel, 'Email')
         .tagged(Environment, 'Dev')
-        .fromClass(DevEmailService) // Tagged with both channel and env
-      .make(NotificationManager).fromSelf();
+        .from().type(DevEmailService) // Tagged with both channel and env
+      .make(NotificationManager).from().type(NotificationManager);
 
     const injector = new Injector();
 
@@ -138,11 +133,11 @@ describe('Axis Tagging and Activation', () => {
     const module = new ModuleDef()
       .make(MessageService as any)
         .tagged(NotificationChannel, 'Email')
-        .fromClass(EmailService)
+        .from().type(EmailService)
       .make(MessageService as any)
         .tagged(NotificationChannel, 'Email')
-        .fromClass(PushService) // Same tag, different implementation
-      .make(NotificationManager).fromSelf();
+        .from().type(PushService) // Same tag, different implementation
+      .make(NotificationManager).from().type(NotificationManager);
 
     const injector = new Injector();
     const activation = Activation.of(AxisPoint.of(NotificationChannel, 'Email'));

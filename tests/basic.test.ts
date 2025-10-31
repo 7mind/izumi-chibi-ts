@@ -1,30 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { Injector, ModuleDef, DIKey, Id, Injectable } from '../src/distage';
+import { Injector, ModuleDef, DIKey, Id, Reflected } from '../src/distage';
 
 // Test classes
-@Injectable()
 class Config {
   constructor(public readonly value: string = 'default') {}
 }
 
-@Injectable()
+@Reflected(Config)
 class Database {
   constructor(public readonly config: Config) {}
 }
 
-@Injectable()
+@Reflected(Database, Config)
 class UserService {
   constructor(public readonly db: Database, public readonly config: Config) {}
 }
 
-@Injectable()
 class Logger {
   log(msg: string): void {
     console.log(msg);
   }
 }
 
-@Injectable()
+@Reflected(Logger, Database)
 class Service {
   constructor(
     public readonly logger: Logger,
@@ -35,9 +33,9 @@ class Service {
 describe('Basic Dependency Injection', () => {
   it('should inject simple dependencies', () => {
     const module = new ModuleDef()
-      .make(Config).fromValue(new Config('test'))
-      .make(Database).fromSelf()
-      .make(UserService).fromSelf();
+      .make(Config).from().value(new Config('test'))
+      .make(Database).from().type(Database)
+      .make(UserService).from().type(UserService);
 
     const injector = new Injector();
     const service = injector.produceByType(module, UserService);
@@ -49,9 +47,9 @@ describe('Basic Dependency Injection', () => {
 
   it('should share singleton instances', () => {
     const module = new ModuleDef()
-      .make(Config).fromValue(new Config('shared'))
-      .make(Database).fromSelf()
-      .make(UserService).fromSelf();
+      .make(Config).from().value(new Config('shared'))
+      .make(Database).from().type(Database)
+      .make(UserService).from().type(UserService);
 
     const injector = new Injector();
     const locator = injector.produce(module, [DIKey.of(UserService)]);
@@ -71,11 +69,11 @@ describe('Basic Dependency Injection', () => {
     const secondaryDb = new Database(new Config('secondary'));
 
     const module = new ModuleDef()
-      .make(Logger).fromValue(new Logger())
-      .make(Database).fromValue(primaryDb) // Default database
-      .make(Database).named('primary').fromValue(primaryDb)
-      .make(Database).named('secondary').fromValue(secondaryDb)
-      .make(Service).fromSelf();
+      .make(Logger).from().value(new Logger())
+      .make(Database).from().value(primaryDb) // Default database
+      .make(Database).named('primary').from().value(primaryDb)
+      .make(Database).named('secondary').from().value(secondaryDb)
+      .make(Service).from().type(Service);
 
     const injector = new Injector();
     const service = injector.produceByType(module, Service);
@@ -87,9 +85,9 @@ describe('Basic Dependency Injection', () => {
 
   it('should support factory bindings', () => {
     const module = new ModuleDef()
-      .make(Config).fromValue(new Config('factory-test'))
-      .make(Database).fromClass(Database)
-      .make(UserService).fromSelf();
+      .make(Config).from().value(new Config('factory-test'))
+      .make(Database).from().type(Database)
+      .make(UserService).from().type(UserService);
 
     const injector = new Injector();
     const service = injector.produceByType(module, UserService);
@@ -102,7 +100,7 @@ describe('Basic Dependency Injection', () => {
     const config = new Config('specific-value');
 
     const module = new ModuleDef()
-      .make(Config).fromValue(config);
+      .make(Config).from().value(config);
 
     const injector = new Injector();
     const result = injector.produceByType(module, Config);
@@ -111,12 +109,11 @@ describe('Basic Dependency Injection', () => {
   });
 
   it('should support alias bindings', () => {
-    @Injectable()
-    abstract class IDatabase {
+        abstract class IDatabase {
       abstract config: Config;
     }
 
-    @Injectable()
+    @Reflected(Config)
     class PostgresDatabase extends IDatabase {
       constructor(public readonly config: Config) {
         super();
@@ -124,14 +121,14 @@ describe('Basic Dependency Injection', () => {
     }
 
     const module = new ModuleDef()
-      .make(Config).fromValue(new Config('postgres'))
-      .make(PostgresDatabase).fromSelf()
-      .make(IDatabase as any).fromAlias(PostgresDatabase);
+      .make(Config).from().value(new Config('postgres'))
+      .make(PostgresDatabase).from().type(PostgresDatabase)
+      .make(IDatabase as any).from().alias(PostgresDatabase);
 
     const injector = new Injector();
     const locator = injector.produce(module, [DIKey.of(IDatabase as any)]);
 
-    const db = locator.get(DIKey.of(IDatabase as any));
+    const db = locator.get(DIKey.of(IDatabase as any)) as IDatabase;
     const postgresDb = locator.get(DIKey.of(PostgresDatabase));
 
     expect(db).toBe(postgresDb);

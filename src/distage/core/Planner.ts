@@ -19,7 +19,6 @@ import {
   ConflictingBindingsError,
   AxisConflictError,
 } from '@/distage/core/Plan';
-import { getConstructorDependencies } from '@/distage/core/Functoid';
 
 /**
  * Tracks valid and invalid axis choices along the current traversal path.
@@ -401,7 +400,7 @@ export class Planner {
         return []; // Instances have no dependencies
 
       case BindingKind.Class:
-        return getConstructorDependencies((binding as ClassBinding).implementation);
+        return (binding as ClassBinding).factory.getDependencies();
 
       case BindingKind.Factory:
         return (binding as FactoryBinding).factory.getDependencies();

@@ -1,4 +1,4 @@
-import { DIKey } from '@/distage/model/DIKey';
+import { DIKey, Callable } from '@/distage/model/DIKey';
 import { Activation } from '@/distage/model/Activation';
 import { ModuleDef } from '@/distage/dsl/ModuleDef';
 import { Planner } from '@/distage/core/Planner';
@@ -100,7 +100,7 @@ export class Injector {
    */
   produceByType<T>(
     module: ModuleDef,
-    type: new (...args: any[]) => T,
+    type: Callable<T>,
     options: InjectorOptions = {},
   ): T {
     return this.produceOne(module, DIKey.of(type), options);
@@ -111,7 +111,7 @@ export class Injector {
    */
   produceByTypeAndId<T>(
     module: ModuleDef,
-    type: new (...args: any[]) => T,
+    type: Callable<T>,
     id: string,
     options: InjectorOptions = {},
   ): T {

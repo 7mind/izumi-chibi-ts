@@ -30,7 +30,7 @@ distage brings the power of distage's staged dependency injection to TypeScript:
 ## Installation
 
 ```bash
-npm install distage reflect-metadata
+npm install distage
 ```
 
 Make sure to enable the following in your `tsconfig.json`:
@@ -38,32 +38,27 @@ Make sure to enable the following in your `tsconfig.json`:
 ```json
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "experimentalDecorators": true
   }
 }
 ```
 
-**Important:** For best experience, use a transformer like [SWC](https://swc.rs/) or [Babel](https://babeljs.io/) that emits decorator metadata. With SWC (which distage uses in tests), you don't need `@Inject()` on constructor parameters - just `@Injectable()` on the class is enough!
+**Note:** distage does not use reflect-metadata or decorators for dependency injection. You must explicitly specify dependencies using `.withDeps()` or provide them via factory functions with `.withTypes()` or `.withParams()`.
 
 ## Quick Start
 
 ```typescript
-import 'reflect-metadata';
-import { Injectable, Injector, ModuleDef, Id } from 'distage';
+import { Injector, ModuleDef, Id } from 'distage';
 
-// Define your classes with @Injectable decorator
-@Injectable()
+// Define your classes
 class Config {
   constructor(public readonly env: string) {}
 }
 
-@Injectable()
 class Database {
   constructor(public readonly config: Config) {}
 }
 
-@Injectable()
 class UserService {
   constructor(
     public readonly db: Database,
@@ -71,12 +66,12 @@ class UserService {
   ) {}
 }
 
-// Define module with bindings
+// Define module with bindings - dependencies must be explicitly specified
 const module = new ModuleDef()
-  .make(Config).fromValue(new Config('production'))
-  .make(Database).fromSelf()
-  .make(String).named('app-name').fromValue('MyApp')
-  .make(UserService).fromSelf();
+  .make(Config).from().value(new Config('production'))
+  .make(Database).withDeps([Config]).from().type(Database)
+  .make(String).named('app-name').from().value('MyApp')
+  .make(UserService).withDeps([Database, String]).from().type(UserService);
 
 // Create injector and produce instances
 const injector = new Injector();
@@ -93,35 +88,33 @@ console.log(userService.db.config.env); // 'production'
 ModuleDef provides a fluent API for declaring how to create instances:
 
 ```typescript
-@Injectable()
 class Config {
   constructor(public readonly logLevel: string) {}
 }
 
-@Injectable()
 class Logger {
   constructor(public readonly config: Config) {}
 }
 
 const module = new ModuleDef()
   // Bind to a value
-  .make(Config).fromValue(new Config('production'))
+  .make(Config).from().value(new Config('production'))
 
-  // Bind to a class (auto-wired)
-  .make(Database).fromClass(PostgresDatabase)
+  // Bind to a class (with explicit dependencies)
+  .make(Database).withDeps([Config]).from().type(PostgresDatabase)
 
-  // Bind using the type itself
-  .make(UserService).fromSelf()
+  // Bind using the type itself (with explicit dependencies)
+  .make(UserService).withDeps([Database, Logger]).from().type(UserService)
 
   // Bind using a factory (manual dependencies)
-  .make(Logger).fromFactory(
+  .make(Logger).from().factory(
     Functoid.fromFunction((config: Config) => {
       return new Logger(config);
     }).withTypes([Config])
   )
 
   // Create an alias
-  .make(IDatabase).fromAlias(PostgresDatabase);
+  .make(IDatabase).from().alias(PostgresDatabase);
 ```
 
 ### Named Bindings with @Id
@@ -129,7 +122,6 @@ const module = new ModuleDef()
 Use the `@Id` decorator to distinguish multiple bindings of the same type:
 
 ```typescript
-@Injectable()
 class Service {
   constructor(
     @Id('primary') public readonly primaryDb: Database,
@@ -138,12 +130,12 @@ class Service {
 }
 
 const module = new ModuleDef()
-  .make(Database).named('primary').fromValue(primaryDb)
-  .make(Database).named('replica').fromValue(replicaDb)
-  .make(Service).fromSelf();
+  .make(Database).named('primary').from().value(primaryDb)
+  .make(Database).named('replica').from().value(replicaDb)
+  .make(Service).withDeps([Database, Database]).from().type(Service);
 ```
 
-**Note:** Unlike Scala's distage or Python's izumi-chibi-py, vanilla TypeScript requires parameter decorators to emit metadata. However, when using **SWC** or **Babel** with decorator metadata support, you only need `@Injectable()` on the class - no additional decorators needed! If you're using vanilla `tsc`, you'll need at least one parameter decorator (like `@Id`) to trigger metadata emission.
+**Note:** Dependencies must be explicitly specified using `.withDeps()` when binding classes, or by using `.withTypes()` or `.withParams()` when creating Functoids. Named dependencies still require the `@Id` decorator on parameters.
 
 ### Set Bindings
 
@@ -163,11 +155,13 @@ class LoggingPlugin implements Plugin {
 }
 
 const module = new ModuleDef()
-  .many(Plugin).addClass(AuthPlugin)
-  .many(Plugin).addClass(LoggingPlugin)
-  .make(PluginManager).fromFactory((plugins: Set<Plugin>) => {
-    return new PluginManager(plugins);
-  });
+  .many(Plugin).from().type(AuthPlugin)
+  .many(Plugin).from().type(LoggingPlugin)
+  .make(PluginManager).from().factory(
+    Functoid.fromFunction((plugins: Set<Plugin>) => {
+      return new PluginManager(plugins);
+    }).withTypes([Set])
+  );
 ```
 
 ### Weak Set Bindings
@@ -176,8 +170,8 @@ Weak set elements are only included if their dependencies can be satisfied:
 
 ```typescript
 const module = new ModuleDef()
-  .many(Plugin).addClass(CorePlugin)
-  .many(Plugin).makeWeak().addClass(OptionalPlugin); // Only included if deps are available
+  .many(Plugin).from().type(CorePlugin)
+  .many(Plugin).makeWeak().from().type(OptionalPlugin); // Only included if deps are available
 ```
 
 ### Axis Tagging for Conditional Bindings
@@ -192,11 +186,11 @@ const Environment = Axis.of('Environment', ['Dev', 'Prod']);
 const module = new ModuleDef()
   .make(Database)
     .tagged(Environment, 'Dev')
-    .fromClass(InMemoryDatabase)
+    .from().type(InMemoryDatabase)
   .make(Database)
     .tagged(Environment, 'Prod')
-    .fromClass(PostgresDatabase)
-  .make(UserService).fromSelf();
+    .withDeps([Config]).from().type(PostgresDatabase)
+  .make(UserService).withDeps([Database]).from().type(UserService);
 
 // Use dev database
 const devActivation = Activation.of(AxisPoint.of(Environment, 'Dev'));
@@ -218,12 +212,12 @@ Functoid represents a function with its dependencies. It supports both automatic
 ```typescript
 import { Functoid } from 'distage';
 
-// Automatic type extraction (requires reflect-metadata)
+// Manual type specification (required)
 const functoid1 = Functoid.fromFunction((db: Database, config: Config) => {
   return new Service(db, config);
-});
+}).withTypes([Database, Config]);
 
-// Manual annotation for parameter IDs
+// Manual annotation for named parameters
 const functoid2 = Functoid.fromFunction((db: Database, name: string) => {
   return new Service(db, name);
 }).annotate([null, 'app-name']); // 'db' has no ID, 'name' gets ID 'app-name'
@@ -282,7 +276,7 @@ class Service {
 }
 
 const module = new ModuleDef()
-  .make(Service).fromSelf();
+  .make(Service).withDeps([MissingDep]).from().type(Service);
   // Error: MissingDep is not bound
 
 const injector = new Injector();
@@ -302,8 +296,8 @@ class B {
 }
 
 const module = new ModuleDef()
-  .make(A).fromSelf()
-  .make(B).fromSelf();
+  .make(A).withDeps([B]).from().type(A)
+  .make(B).withDeps([A]).from().type(B);
 
 // Throws: CircularDependencyError
 injector.produceByType(module, A);
@@ -313,8 +307,8 @@ injector.produceByType(module, A);
 
 ```typescript
 const module = new ModuleDef()
-  .make(Service).tagged(Env, 'Prod').fromClass(ServiceA)
-  .make(Service).tagged(Env, 'Prod').fromClass(ServiceB); // Same specificity!
+  .make(Service).tagged(Env, 'Prod').from().type(ServiceA)
+  .make(Service).tagged(Env, 'Prod').from().type(ServiceB); // Same specificity!
 
 // Throws: ConflictingBindingsError
 injector.produceByType(module, Service, {
@@ -328,11 +322,11 @@ Combine and override modules:
 
 ```typescript
 const baseModule = new ModuleDef()
-  .make(Database).fromClass(PostgresDatabase)
-  .make(Cache).fromClass(RedisCache);
+  .make(Database).withDeps([Config]).from().type(PostgresDatabase)
+  .make(Cache).withDeps([Config]).from().type(RedisCache);
 
 const testModule = new ModuleDef()
-  .make(Database).fromClass(InMemoryDatabase);
+  .make(Database).from().type(InMemoryDatabase);
 
 // Merge modules
 const combined = baseModule.append(testModule);
@@ -394,8 +388,9 @@ distage implements the core concepts of distage with TypeScript-specific adaptat
 
 **Differences:**
 - Uses `@Id` decorator instead of Scala's type tags
+- Requires explicit dependency specification via `.withDeps()` or Functoid annotations
 - Manual annotation for lambda parameters (TypeScript limitation)
-- Uses `reflect-metadata` for type reflection
+- No automatic type reflection (explicit `.withTypes()` or `.withParams()` required)
 - Simplified lifecycle management
 - No trait auto-implementation (TypeScript limitation)
 

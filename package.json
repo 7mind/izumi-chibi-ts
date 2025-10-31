@@ -15,7 +15,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias --resolve-full-paths",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -50,8 +50,5 @@
     "typescript": "^5.3.3",
     "unplugin-swc": "^1.5.8",
     "vitest": "^1.2.0"
-  },
-  "dependencies": {
-    "reflect-metadata": "^0.2.1"
   }
 }

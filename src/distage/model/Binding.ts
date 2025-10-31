@@ -37,7 +37,7 @@ export interface InstanceBinding<T = any> extends Binding<T> {
  */
 export interface ClassBinding<T = any> extends Binding<T> {
   kind: BindingKind.Class;
-  implementation: new (...args: any[]) => T;
+  factory: Functoid<T>;
 }
 
 /**
@@ -83,7 +83,7 @@ export interface WeakSetBinding<T = any> extends Binding<Set<T>> {
  */
 export interface AssistedFactoryBinding<T = any> extends Binding<T> {
   kind: BindingKind.AssistedFactory;
-  implementation: new (...args: any[]) => T;
+  factory: Functoid<T>;
   assistedParams: string[]; // Names of parameters to be provided at runtime
 }
 
@@ -121,7 +121,7 @@ export const Bindings = {
       key,
       tags,
       kind: BindingKind.Class,
-      implementation,
+      factory: Functoid.fromConstructor(implementation),
     };
   },
 
@@ -185,7 +185,7 @@ export const Bindings = {
 
   assistedFactory<T>(
     key: DIKey<T>,
-    implementation: new (...args: any[]) => T,
+    factory: Functoid<T>,
     assistedParams: string[] = [],
     tags: BindingTags = BindingTags.empty(),
   ): AssistedFactoryBinding<T> {
@@ -193,7 +193,7 @@ export const Bindings = {
       key,
       tags,
       kind: BindingKind.AssistedFactory,
-      implementation,
+      factory,
       assistedParams,
     };
   },

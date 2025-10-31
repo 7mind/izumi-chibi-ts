@@ -12,7 +12,6 @@ import {
 } from '@/distage/model/Binding';
 import { Plan, PlanStep } from '@/distage/core/Plan';
 import { Locator, LocatorImpl } from '@/distage/core/Locator';
-import { getConstructorDependencies } from '@/distage/core/Functoid';
 
 /**
  * The Producer executes a Plan to create instances.
@@ -110,7 +109,7 @@ export class Producer {
     parentLocator?: Locator,
   ): any {
     const args = dependencies.map(dep => this.resolveInstance(dep, instances, parentLocator));
-    return new binding.implementation(...args);
+    return binding.factory.execute(args);
   }
 
   /**
@@ -254,11 +253,7 @@ export class Producer {
    * Get dependencies for a binding
    */
   private getBindingDependencies(binding: ClassBinding | FactoryBinding): DIKey[] {
-    if (binding.kind === BindingKind.Class) {
-      return getConstructorDependencies((binding as ClassBinding).implementation);
-    } else {
-      return (binding as FactoryBinding).factory.getDependencies();
-    }
+    return binding.factory.getDependencies();
   }
 
   /**
@@ -272,7 +267,7 @@ export class Producer {
     // Return a factory function that takes runtime arguments
     // and combines them with DI-resolved dependencies
     return (...runtimeArgs: any[]) => {
-      const allDeps = getConstructorDependencies(binding.implementation);
+      const allDeps = binding.factory.getDependencies();
 
       // For now, we assume runtime args come first, then DI deps
       // In a more sophisticated version, you'd use parameter names to match
@@ -281,7 +276,7 @@ export class Producer {
         .map((dep: DIKey) => this.resolveInstance(dep, instances, parentLocator));
 
       const allArgs = [...runtimeArgs, ...diArgs];
-      return new binding.implementation(...allArgs);
+      return binding.factory.execute(allArgs);
     };
   }
 

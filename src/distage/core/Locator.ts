@@ -1,4 +1,4 @@
-import { DIKey } from '@/distage/model/DIKey';
+import { DIKey, Callable } from '@/distage/model/DIKey';
 import { Lifecycle, LifecycleManager } from '@/distage/model/Lifecycle';
 
 /**
@@ -16,13 +16,13 @@ export interface Locator {
    * Get an instance by type
    * @throws Error if the type is not found
    */
-  getByType<T>(type: new (...args: any[]) => T): T;
+  getByType<T>(type: Callable<T>): T;
 
   /**
    * Get an instance by type and ID
    * @throws Error if the key is not found
    */
-  getByTypeAndId<T>(type: new (...args: any[]) => T, id: string): T;
+  getByTypeAndId<T>(type: Callable<T>, id: string): T;
 
   /**
    * Try to get an instance, returning undefined if not found
@@ -37,12 +37,12 @@ export interface Locator {
   /**
    * Get all instances of a set
    */
-  getSet<T>(type: new (...args: any[]) => T): Set<T>;
+  getSet<T>(type: Callable<T>): Set<T>;
 
   /**
    * Get all instances of a named set
    */
-  getNamedSet<T>(type: new (...args: any[]) => T, id: string): Set<T>;
+  getNamedSet<T>(type: Callable<T>, id: string): Set<T>;
 
   /**
    * Get all keys in the locator
@@ -76,11 +76,11 @@ export class LocatorImpl implements Locator {
     return instance;
   }
 
-  getByType<T>(type: new (...args: any[]) => T): T {
+  getByType<T>(type: Callable<T>): T {
     return this.get(DIKey.of(type));
   }
 
-  getByTypeAndId<T>(type: new (...args: any[]) => T, id: string): T {
+  getByTypeAndId<T>(type: Callable<T>, id: string): T {
     return this.get(DIKey.named(type, id));
   }
 
@@ -94,11 +94,11 @@ export class LocatorImpl implements Locator {
     return this.instances.has(keyStr);
   }
 
-  getSet<T>(type: new (...args: any[]) => T): Set<T> {
+  getSet<T>(type: Callable<T>): Set<T> {
     return this.get(DIKey.set(type));
   }
 
-  getNamedSet<T>(type: new (...args: any[]) => T, id: string): Set<T> {
+  getNamedSet<T>(type: Callable<T>, id: string): Set<T> {
     return this.get(DIKey.namedSet(type, id));
   }
 

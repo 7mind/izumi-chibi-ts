@@ -1,7 +1,8 @@
-import { DIKey } from '@/distage/model/DIKey';
+import { DIKey, Callable } from '@/distage/model/DIKey';
 import { AnyBinding, Bindings } from '@/distage/model/Binding';
 import { BindingTags, Axis, AxisPoint } from '@/distage/model/Activation';
 import { Functoid } from '@/distage/core/Functoid';
+import { getConstructorTypes } from '@/distage/model/Reflected';
 
 /**
  * Builder for specifying the source of a binding (like izumi-chibi-py's .using())
@@ -9,15 +10,29 @@ import { Functoid } from '@/distage/core/Functoid';
 export class BindingFromBuilder<T> {
   constructor(
     private readonly bindingBuilder: BindingBuilder<T>,
+    private readonly constructorTypes?: any[],
   ) {}
 
   /**
    * Bind to a specific class type (will be instantiated via constructor injection)
    */
   type(implementation: new (...args: any[]) => T): ModuleDef {
-    return this.bindingBuilder.finalize((key, tags) =>
-      Bindings.class(key, implementation, tags)
-    );
+    return this.bindingBuilder.finalize((key, tags) => {
+      const binding = Bindings.class(key, implementation, tags);
+
+      // If we have explicit types from .withDeps(), use them
+      if (this.constructorTypes && this.constructorTypes.length > 0) {
+        binding.factory.withTypes(this.constructorTypes);
+      } else {
+        // Otherwise, try to auto-detect from @Injectable decorator
+        const injectableTypes = getConstructorTypes(implementation);
+        if (injectableTypes && injectableTypes.length > 0) {
+          binding.factory.withTypes(injectableTypes);
+        }
+      }
+
+      return binding;
+    });
   }
 
   /**
@@ -47,7 +62,7 @@ export class BindingFromBuilder<T> {
   /**
    * Create an alias to another binding
    */
-  alias(targetType: new (...args: any[]) => T, targetId?: string): ModuleDef {
+  alias(targetType: Callable<T>, targetId?: string): ModuleDef {
     return this.bindingBuilder.finalize((key, tags) => {
       const targetKey = targetId ? DIKey.named(targetType, targetId) : DIKey.of(targetType);
       return Bindings.alias(key, targetKey, tags);
@@ -58,9 +73,23 @@ export class BindingFromBuilder<T> {
    * Create an assisted factory binding (for runtime parameters + DI)
    */
   assistedFactory(assistedParams: string[] = []): ModuleDef {
-    return this.bindingBuilder.finalize((key, tags) =>
-      Bindings.assistedFactory(key, this.bindingBuilder['type'], assistedParams, tags)
-    );
+    return this.bindingBuilder.finalize((key, tags) => {
+      const implementation = this.bindingBuilder['type'] as new (...args: any[]) => T;
+      const functoid = Functoid.fromConstructor(implementation);
+
+      // If we have explicit types from .withDeps(), use them
+      if (this.constructorTypes && this.constructorTypes.length > 0) {
+        functoid.withTypes(this.constructorTypes);
+      } else {
+        // Otherwise, try to auto-detect from @Injectable decorator
+        const injectableTypes = getConstructorTypes(implementation);
+        if (injectableTypes && injectableTypes.length > 0) {
+          functoid.withTypes(injectableTypes);
+        }
+      }
+
+      return Bindings.assistedFactory(key, functoid, assistedParams, tags);
+    });
   }
 }
 
@@ -70,9 +99,10 @@ export class BindingFromBuilder<T> {
 export class BindingBuilder<T> {
   private currentId?: string;
   private currentTags: BindingTags = BindingTags.empty();
+  private constructorTypes?: any[];
 
   constructor(
-    private readonly type: new (...args: any[]) => T,
+    private readonly type: Callable<T>,
     private readonly module: ModuleDef,
   ) {}
 
@@ -81,6 +111,17 @@ export class BindingBuilder<T> {
    */
   named(id: string): this {
     this.currentId = id;
+    return this;
+  }
+
+  /**
+   * Specify constructor parameter types explicitly (required without reflect-metadata)
+   *
+   * Example:
+   *   module.make(UserService).withDeps([Database, Config]).from().type(UserService)
+   */
+  withDeps(types: any[]): this {
+    this.constructorTypes = types;
     return this;
   }
 
@@ -104,7 +145,7 @@ export class BindingBuilder<T> {
    * Start specifying where the binding comes from (izumi-chibi-py style)
    */
   from(): BindingFromBuilder<T> {
-    return new BindingFromBuilder(this);
+    return new BindingFromBuilder(this, this.constructorTypes);
   }
 
   /**
@@ -125,39 +166,6 @@ export class BindingBuilder<T> {
     const binding = createBinding(key, this.currentTags);
     this.module.addBinding(binding);
     return this.module;
-  }
-
-  // Legacy methods for backward compatibility (deprecated)
-  /** @deprecated Use .from().value() instead */
-  fromValue(value: T): ModuleDef {
-    return this.from().value(value);
-  }
-
-  /** @deprecated Use .from().type() instead */
-  fromClass(implementation: new (...args: any[]) => T): ModuleDef {
-    return this.from().type(implementation);
-  }
-
-  /** @deprecated Use .from().type() with the same type instead */
-  fromSelf(): ModuleDef {
-    return this.from().type(this.type);
-  }
-
-  /** @deprecated Use .from().factory() instead */
-  fromFactory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
-  fromFactory<R extends T>(functoid: Functoid<R>): ModuleDef;
-  fromFactory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
-    return this.from().factory(factoryOrFunctoid as any);
-  }
-
-  /** @deprecated Use .from().alias() instead */
-  fromAlias(targetType: new (...args: any[]) => T, targetId?: string): ModuleDef {
-    return this.from().alias(targetType, targetId);
-  }
-
-  /** @deprecated Use .from().assistedFactory() instead */
-  fromAssistedFactory(assistedParams: string[] = []): ModuleDef {
-    return this.from().assistedFactory(assistedParams);
   }
 }
 
@@ -215,7 +223,7 @@ export class SetBindingBuilder<T> {
   private weak: boolean = false;
 
   constructor(
-    private readonly elementType: new (...args: any[]) => T,
+    private readonly elementType: Callable<T>,
     private readonly module: ModuleDef,
   ) {}
 
@@ -288,36 +296,13 @@ export class SetBindingBuilder<T> {
     this.module.addBinding(binding);
     return this.module;
   }
-
-  // Legacy methods for backward compatibility (deprecated)
-  /** @deprecated Use .from().value() instead */
-  addValue(value: T): ModuleDef {
-    return this.from().value(value);
-  }
-
-  /** @deprecated Use .from().type() instead */
-  addClass(implementation: new (...args: any[]) => T): ModuleDef {
-    return this.from().type(implementation);
-  }
-
-  /** @deprecated Use .from().type() with element type instead */
-  addSelf(): ModuleDef {
-    return this.from().type(this.elementType);
-  }
-
-  /** @deprecated Use .from().factory() instead */
-  addFactory<R extends T>(factory: (...args: any[]) => R): ModuleDef;
-  addFactory<R extends T>(functoid: Functoid<R>): ModuleDef;
-  addFactory<R extends T>(factoryOrFunctoid: ((...args: any[]) => R) | Functoid<R>): ModuleDef {
-    return this.from().factory(factoryOrFunctoid as any);
-  }
 }
 
 /**
  * Main DSL for defining dependency injection modules.
  * Provides a fluent API for declaring bindings, inspired by izumi-chibi-py.
  *
- * Example (new syntax):
+ * Example:
  *   const module = new ModuleDef()
  *     .make(Database).from().type(PostgresDatabase)
  *     .make(UserService).from().type(UserService)
@@ -330,11 +315,6 @@ export class SetBindingBuilder<T> {
  *   - .value(instance) - bind to a specific instance
  *   - .factory(fn) - bind to a factory function
  *   - .alias(TargetClass) - create an alias to another binding
- *
- * Legacy syntax (deprecated but still supported):
- *   .make(Database).fromClass(PostgresDatabase)
- *   .make(UserService).fromSelf()
- *   .make(Config).fromValue(config)
  */
 export class ModuleDef {
   private bindings: AnyBinding[] = [];
@@ -342,14 +322,14 @@ export class ModuleDef {
   /**
    * Start defining a binding for a type
    */
-  make<T>(type: new (...args: any[]) => T): BindingBuilder<T> {
+  make<T>(type: Callable<T>): BindingBuilder<T> {
     return new BindingBuilder(type, this);
   }
 
   /**
    * Start defining a set binding
    */
-  many<T>(elementType: new (...args: any[]) => T): SetBindingBuilder<T> {
+  many<T>(elementType: Callable<T>): SetBindingBuilder<T> {
     return new SetBindingBuilder(elementType, this);
   }
 

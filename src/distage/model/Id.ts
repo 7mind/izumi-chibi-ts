@@ -1,5 +1,7 @@
-import 'reflect-metadata';
 import { ID_METADATA_KEY } from '@/distage/model/DIKey';
+
+// Symbol to store parameter IDs directly on the target object
+const PARAMETER_IDS_SYMBOL = Symbol('distage:parameterIds');
 
 /**
  * Decorator to mark a parameter or property with a named identifier.
@@ -20,12 +22,28 @@ export function Id(id: string) {
     // For method parameters, propertyKey is the method name
     const key = propertyKey || 'constructor';
 
-    // Store the ID metadata for this parameter
-    const existingIds: Map<number, string> =
-      Reflect.getOwnMetadata(ID_METADATA_KEY, target, key) || new Map();
+    // Get or create the storage directly on the target object
+    let targetStorage = (target as any)[PARAMETER_IDS_SYMBOL];
+    if (!targetStorage) {
+      targetStorage = new Map<string | symbol, Map<number, string>>();
+      // Store it as a non-enumerable property
+      Object.defineProperty(target, PARAMETER_IDS_SYMBOL, {
+        value: targetStorage,
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
+    }
 
-    existingIds.set(parameterIndex, id);
-    Reflect.defineMetadata(ID_METADATA_KEY, existingIds, target, key);
+    // Get or create the Map for this specific property/constructor
+    let propertyIds = targetStorage.get(key);
+    if (!propertyIds) {
+      propertyIds = new Map<number, string>();
+      targetStorage.set(key, propertyIds);
+    }
+
+    // Store the ID for this parameter index
+    propertyIds.set(parameterIndex, id);
   };
 }
 
@@ -37,10 +55,11 @@ export function getParameterId(
   propertyKey: string | symbol,
   parameterIndex: number,
 ): string | undefined {
-  const ids: Map<number, string> | undefined =
-    Reflect.getOwnMetadata(ID_METADATA_KEY, target, propertyKey);
+  const targetStorage = target[PARAMETER_IDS_SYMBOL];
+  if (!targetStorage) return undefined;
 
-  return ids?.get(parameterIndex);
+  const propertyIds = targetStorage.get(propertyKey);
+  return propertyIds?.get(parameterIndex);
 }
 
 /**
@@ -50,5 +69,8 @@ export function getAllParameterIds(
   target: any,
   propertyKey: string | symbol = 'constructor',
 ): Map<number, string> {
-  return Reflect.getOwnMetadata(ID_METADATA_KEY, target, propertyKey) || new Map();
+  const targetStorage = target[PARAMETER_IDS_SYMBOL];
+  if (!targetStorage) return new Map();
+
+  return targetStorage.get(propertyKey) || new Map();
 }

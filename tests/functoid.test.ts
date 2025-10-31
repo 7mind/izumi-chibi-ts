@@ -1,13 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { Functoid, DIKey, Injector, ModuleDef, Injectable } from '../src/distage';
+import { Functoid, DIKey, Injector, ModuleDef } from '../src/distage';
 
 // Test classes
-@Injectable()
 class Config {
   constructor(public readonly value: string = 'default') {}
 }
 
-@Injectable()
 class Database {
   constructor(public readonly config: Config) {}
 }
@@ -22,8 +20,8 @@ describe('Functoid', () => {
 
     const deps = functoid.getDependencies();
     expect(deps.length).toBe(2);
-    expect(deps[0].type).toBe(Config);
-    expect(deps[1].type).toBe(Database);
+    expect(deps[0].getCallable()).toBe(Config);
+    expect(deps[1].getCallable()).toBe(Database);
   });
 
   it('should support manual annotation of parameter IDs', () => {
@@ -68,14 +66,13 @@ describe('Functoid', () => {
   });
 
   it('should work with ModuleDef factory bindings', () => {
-    @Injectable()
-    class ComputedValue {
+        class ComputedValue {
       constructor(public readonly value: number) {}
     }
 
     const module = new ModuleDef()
-      .make(Config).fromValue(new Config('10'))
-      .make(ComputedValue).fromFactory(
+      .make(Config).from().value(new Config('10'))
+      .make(ComputedValue).from().factory(
         Functoid.fromFunction((config: Config) => {
           return new ComputedValue(parseInt(config.value) * 2);
         }).withTypes([Config])
@@ -88,8 +85,7 @@ describe('Functoid', () => {
   });
 
   it('should handle functoids with annotated IDs in factory bindings', () => {
-    @Injectable()
-    class Service {
+        class Service {
       constructor(
         public readonly primary: Config,
         public readonly secondary: Config,
@@ -97,9 +93,9 @@ describe('Functoid', () => {
     }
 
     const module = new ModuleDef()
-      .make(Config).named('primary').fromValue(new Config('primary-value'))
-      .make(Config).named('secondary').fromValue(new Config('secondary-value'))
-      .make(Service).fromFactory(
+      .make(Config).named('primary').from().value(new Config('primary-value'))
+      .make(Config).named('secondary').from().value(new Config('secondary-value'))
+      .make(Service).from().factory(
         Functoid.fromFunction((p: Config, s: Config) => {
           return new Service(p, s);
         }).withParams([
@@ -115,12 +111,12 @@ describe('Functoid', () => {
     expect(service.secondary.value).toBe('secondary-value');
   });
 
-  it('should extract dependencies from constructors', () => {
-    const functoid = Functoid.fromConstructor(Database);
+  it('should extract dependencies from constructors with explicit types', () => {
+    const functoid = Functoid.fromConstructor(Database).withTypes([Config]);
 
     const deps = functoid.getDependencies();
     expect(deps.length).toBe(1);
-    expect(deps[0].type).toBe(Config);
+    expect(deps[0].getCallable()).toBe(Config);
   });
 
   it('should throw helpful error when type information is missing', () => {
