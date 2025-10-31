@@ -26,7 +26,7 @@ describe('Functoid.make - Type-safe factory functions', () => {
   it('should create a type-safe Functoid with compile-time validation', () => {
     // Type-safe: TypeScript validates that function params match the types array
     const functoid = Functoid.fromFunction(
-      [Database, Config] as const,
+      [Database, Config],
       (db, config) => new UserService(db, config)
     );
 
@@ -38,7 +38,7 @@ describe('Functoid.make - Type-safe factory functions', () => {
 
   it('should work in a full DI context', () => {
     const functoid = Functoid.fromFunction(
-      [Database, Config] as const,
+      [Database, Config],
       (db, config) => new UserService(db, config)
     );
 
@@ -71,7 +71,7 @@ describe('Functoid.make - Type-safe factory functions', () => {
     }
 
     const functoid = Functoid.fromFunction(
-      [HostConfig, PortConfig] as const,
+      [HostConfig, PortConfig],
       (hostCfg, portCfg) => ({
         host: hostCfg.host,
         port: portCfg.port,
@@ -95,7 +95,7 @@ describe('Functoid.make - Type-safe factory functions', () => {
 
   it('should support single parameter', () => {
     const functoid = Functoid.fromFunction(
-      [Database] as const,
+      [Database],
       (db) => ({ database: db, initialized: true })
     );
 
@@ -106,7 +106,7 @@ describe('Functoid.make - Type-safe factory functions', () => {
 
   it('should support no parameters', () => {
     const functoid = Functoid.fromFunction(
-      [] as const,
+      [],
       () => ({ timestamp: Date.now() })
     );
 
@@ -120,13 +120,13 @@ describe('Functoid.make - Type-safe factory functions', () => {
   //
   // // ✗ Compile error: Expected 2 params, got 1
   // Functoid.make(
-  //   [Database] as const,
+  //   [Database],
   //   (db, config) => new UserService(db, config)
   // );
   //
   // // ✗ Compile error: Wrong parameter order - Config is not assignable to Database
   // Functoid.make(
-  //   [Config, Database] as const,
+  //   [Config, Database],
   //   (db, config) => new UserService(db, config)
   // );
 });

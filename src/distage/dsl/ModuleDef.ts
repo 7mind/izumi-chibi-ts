@@ -71,7 +71,7 @@ export class BindingFromBuilder<T> {
    * Bind to a pre-constructed Functoid
    *
    * Example:
-   *   const myFunctoid = Functoid.fromFunction([Database, Config] as const, (db, cfg) => ...);
+   *   const myFunctoid = Functoid.fromFunction([Database, Config], (db, cfg) => ...);
    *   module.make(UserService).from().functoid(myFunctoid)
    */
   functoid<R extends T>(functoid: Functoid<R>): ModuleDef {
@@ -86,7 +86,7 @@ export class BindingFromBuilder<T> {
    *
    * Example:
    *   module.make(UserService).from().func(
-   *     [Database, Config] as const,
+   *     [Database, Config],
    *     (db, cfg) => new UserService(db, cfg)
    *   )
    */
@@ -258,7 +258,7 @@ export class SetBindingFromBuilder<T> {
    * Add a pre-constructed Functoid to the set
    *
    * Example:
-   *   const myFunctoid = Functoid.fromFunction([Database] as const, (db) => new Plugin(db));
+   *   const myFunctoid = Functoid.fromFunction([Database], (db) => new Plugin(db));
    *   module.many(Plugin).from().functoid(myFunctoid)
    */
   functoid<R extends T>(functoid: Functoid<R>): ModuleDef {
@@ -274,7 +274,7 @@ export class SetBindingFromBuilder<T> {
    *
    * Example:
    *   module.many(Plugin).from().func(
-   *     [Database] as const,
+   *     [Database],
    *     (db) => new AuthPlugin(db)
    *   )
    */

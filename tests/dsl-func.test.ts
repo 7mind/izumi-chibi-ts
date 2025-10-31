@@ -44,7 +44,7 @@ describe('DSL .func() and .functoid() methods', () => {
         .make(Database).from().type(Database)
         .make(Config).from().value(new Config('test'))
         .make(UserService).from().func(
-          [Database, Config] as const,
+          [Database, Config],
           (db, config) => new UserService(db, config)
         );
 
@@ -60,7 +60,7 @@ describe('DSL .func() and .functoid() methods', () => {
     it('should work with no parameters', () => {
       const module = new ModuleDef()
         .make(Config).from().func(
-          [] as const,
+          [],
           () => new Config('generated')
         );
 
@@ -75,7 +75,7 @@ describe('DSL .func() and .functoid() methods', () => {
       const module = new ModuleDef()
         .make(Database).from().type(Database)
         .make(UserService).from().func(
-          [Database] as const,
+          [Database],
           (db) => new UserService(db, new Config('inline'))
         );
 
@@ -91,7 +91,7 @@ describe('DSL .func() and .functoid() methods', () => {
   describe('.from().functoid()', () => {
     it('should bind using pre-constructed Functoid', () => {
       const functoid = Functoid.fromFunction(
-        [Database, Config] as const,
+        [Database, Config],
         (db, config) => new UserService(db, config)
       );
 
@@ -110,7 +110,7 @@ describe('DSL .func() and .functoid() methods', () => {
 
     it('should allow reusing Functoids across multiple bindings', () => {
       const configFunctoid = Functoid.fromFunction(
-        [] as const,
+        [],
         () => new Config('shared')
       );
 
@@ -139,11 +139,11 @@ describe('DSL .func() and .functoid() methods', () => {
       const module = new ModuleDef()
         .make(Database).from().type(Database)
         .many(Plugin).from().func(
-          [Database] as const,
+          [Database],
           (db) => new AuthPlugin(db)
         )
         .many(Plugin).from().func(
-          [] as const,
+          [],
           () => new LoggingPlugin()
         );
 
@@ -161,12 +161,12 @@ describe('DSL .func() and .functoid() methods', () => {
   describe('Sets: .many().from().functoid()', () => {
     it('should add elements to set using pre-constructed Functoid', () => {
       const authFunctoid = Functoid.fromFunction(
-        [Database] as const,
+        [Database],
         (db) => new AuthPlugin(db)
       );
 
       const loggingFunctoid = Functoid.fromFunction(
-        [] as const,
+        [],
         () => new LoggingPlugin()
       );
 
@@ -193,7 +193,7 @@ describe('DSL .func() and .functoid() methods', () => {
         .make(Database).from().type(Database)
         .make(Config).from().value(new Config('test'))
         .make(UserService).from().func(
-          [Database, Config] as const,
+          [Database, Config],
           (db, config) => new UserService(db, config)
         );
 
@@ -203,7 +203,7 @@ describe('DSL .func() and .functoid() methods', () => {
         .make(Config).from().value(new Config('test'))
         .make(UserService).from().factory(
           Functoid.fromFunction(
-            [Database, Config] as const,
+            [Database, Config],
             (db, config) => new UserService(db, config)
           )
         );

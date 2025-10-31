@@ -194,8 +194,8 @@ export class Functoid<T = any> {
    * TypeScript infers parameter types from the types array, eliminating duplication.
    *
    * Example:
-   *   const functoid = Functoid.make(
-   *     [Database, Config] as const,
+   *   const functoid = Functoid.fromFunction(
+   *     [Database, Config],
    *     (db, config) => new UserService(db, config)
    *   );
    *   // TypeScript automatically infers: db: Database, config: Config
@@ -204,12 +204,11 @@ export class Functoid<T = any> {
    * - No type duplication: types are specified once in the array
    * - Compile-time validation: ensures parameter count and order match
    * - Full type safety: TypeScript infers correct types for function parameters
-   *
-   * Note: Use 'as const' on the types array to enable type inference and validation.
+   * - No 'as const' needed: the `const` type parameter handles it
    *
    * Compile-time validation examples:
-   *   Functoid.make([Database] as const, (db, cfg) => ...)  // ✗ Error: expected 1 param, got 2
-   *   Functoid.make([Config, Database] as const, (db, cfg) => ...)  // ✗ Error: db is Config, not Database
+   *   Functoid.fromFunction([Database], (db, cfg) => ...)  // ✗ Error: expected 1 param, got 2
+   *   Functoid.fromFunction([Config, Database], (db, cfg) => ...)  // ✗ Error: db is Config, not Database
    */
   static fromFunction<const Args extends readonly (abstract new (...args: any[]) => any)[], R>(
     types: Args,
