@@ -18,11 +18,11 @@ export function Id(id: string) {
     propertyKey: string | symbol | undefined,
     parameterIndex: number,
   ) {
-    // For constructor parameters, propertyKey is undefined
-    // For method parameters, propertyKey is the method name
+    // For constructor parameters: target is the constructor, propertyKey is undefined
+    // For method parameters: target is the prototype, propertyKey is the method name
     const key = propertyKey || 'constructor';
 
-    // Get or create the storage directly on the target object
+    // Get or create the storage directly on the target (constructor for constructor params)
     let targetStorage = (target as any)[PARAMETER_IDS_SYMBOL];
     if (!targetStorage) {
       targetStorage = new Map<string | symbol, Map<number, string>>();

@@ -23,13 +23,10 @@ export class BindingFromBuilder<T> {
       // If we have explicit types from .withDeps(), use them
       if (this.constructorTypes && this.constructorTypes.length > 0) {
         binding.factory.withTypes(this.constructorTypes);
-      } else {
-        // Otherwise, try to auto-detect from @Injectable decorator
-        const injectableTypes = getConstructorTypes(implementation);
-        if (injectableTypes && injectableTypes.length > 0) {
-          binding.factory.withTypes(injectableTypes);
-        }
       }
+      // Note: We don't need to call withTypes() for @Reflected/@Injectable here,
+      // because Functoid.fromConstructor() already handles both @Reflected types
+      // and @Id decorators when creating the binding.
 
       return binding;
     });

@@ -134,4 +134,33 @@ describe('Basic Dependency Injection', () => {
     expect(db).toBe(postgresDb);
     expect(db.config.value).toBe('postgres');
   });
+
+  it('should support @Reflected with primitive types and named dependencies', () => {
+    @Reflected(Database, String, Number)
+    class Server {
+      constructor(
+        public readonly db: Database,
+        public readonly host: string,
+        @Id('port') public readonly port: number,
+      ) {}
+    }
+
+    const config = new Config('server-db');
+    const module = new ModuleDef()
+      .make(Config).from().value(config)
+      .make(Database).from().type(Database)
+      .make(Server).from().type(Server)
+      .make(String).from().value('localhost')
+      .make(Number).named('port').from().value(8080);
+
+    const injector = new Injector();
+    const locator = injector.produce(module, [DIKey.of(Server)]);
+
+    const server = locator.get(DIKey.of(Server));
+    expect(server).toBeInstanceOf(Server);
+    expect(server.db).toBeInstanceOf(Database);
+    expect(server.db.config).toBe(config);
+    expect(server.host).toBe('localhost');
+    expect(server.port).toBe(8080);
+  });
 });

@@ -142,7 +142,8 @@ export class Functoid<T = any> {
     const types = getConstructorTypes(ctor);
 
     // Get parameter IDs from @Id decorators (if any)
-    const paramIds = getAllParameterIds(ctor.prototype, 'constructor');
+    // Note: @Id stores metadata on the constructor itself, not the prototype
+    const paramIds = getAllParameterIds(ctor, 'constructor');
 
     if (types && types.length > 0) {
       // Auto-resolve from @Injectable decorator
