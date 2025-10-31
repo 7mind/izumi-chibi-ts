@@ -126,52 +126,32 @@ export class DIKey<T = any> {
   ) {}
 
   /**
-   * Create a DIKey for a type (accepts Callable for convenience)
+   * Create a DIKey for a type
    */
-  static of<T>(type: Callable<T>): DIKey<T>;
-  static of<T>(type: TypeTag<T>): DIKey<T>;
-  static of<T>(type: Callable<T> | TypeTag<T>): DIKey<T> {
-    const tag = typeof type === 'object' && 'kind' in type
-      ? type
-      : TypeTag.callable(type as Callable<T>);
-    return new DIKey(tag);
+  static of<T>(type: Callable<T>): DIKey<T> {
+    return new DIKey(TypeTag.callable(type));
   }
 
   /**
    * Create a named DIKey (for @Id bindings)
    */
-  static named<T>(type: Callable<T>, id: string): DIKey<T>;
-  static named<T>(type: TypeTag<T>, id: string): DIKey<T>;
-  static named<T>(type: Callable<T> | TypeTag<T>, id: string): DIKey<T> {
-    const tag = typeof type === 'object' && 'kind' in type
-      ? type
-      : TypeTag.callable(type as Callable<T>);
-    return new DIKey(tag, id);
+  static named<T>(type: Callable<T>, id: string): DIKey<T> {
+    return new DIKey(TypeTag.callable(type), id);
   }
 
   /**
    * Create a DIKey for a set binding
    */
-  static set<T>(type: Callable<T>): DIKey<Set<T>>;
-  static set<T>(type: TypeTag<T>): DIKey<Set<T>>;
-  static set<T>(type: Callable<T> | TypeTag<T>): DIKey<Set<T>> {
-    const elementTag = typeof type === 'object' && 'kind' in type
-      ? type
-      : TypeTag.callable(type as Callable<T>);
-    const setTag = TypeTag.set(elementTag);
+  static set<T>(type: Callable<T>): DIKey<Set<T>> {
+    const setTag = TypeTag.set(TypeTag.callable(type));
     return new DIKey(setTag) as any;
   }
 
   /**
    * Create a DIKey for a named set binding
    */
-  static namedSet<T>(type: Callable<T>, id: string): DIKey<Set<T>>;
-  static namedSet<T>(type: TypeTag<T>, id: string): DIKey<Set<T>>;
-  static namedSet<T>(type: Callable<T> | TypeTag<T>, id: string): DIKey<Set<T>> {
-    const elementTag = typeof type === 'object' && 'kind' in type
-      ? type
-      : TypeTag.callable(type as Callable<T>);
-    const setTag = TypeTag.set(elementTag);
+  static namedSet<T>(type: Callable<T>, id: string): DIKey<Set<T>> {
+    const setTag = TypeTag.set(TypeTag.callable(type));
     return new DIKey(setTag, id) as any;
   }
 
