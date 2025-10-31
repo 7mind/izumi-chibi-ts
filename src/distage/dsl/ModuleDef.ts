@@ -51,7 +51,7 @@ export class BindingFromBuilder<T> {
       const functoid =
         factoryOrFunctoid instanceof Functoid
           ? factoryOrFunctoid
-          : Functoid.fromFunction(factoryOrFunctoid);
+          : Functoid.fromFunctionUnsafe(factoryOrFunctoid);
       return Bindings.factory(key, functoid, tags);
     });
   }
@@ -204,7 +204,7 @@ export class SetBindingFromBuilder<T> {
       const functoid =
         factoryOrFunctoid instanceof Functoid
           ? factoryOrFunctoid
-          : Functoid.fromFunction(factoryOrFunctoid);
+          : Functoid.fromFunctionUnsafe(factoryOrFunctoid);
       const element = Bindings.factory(elementKey, functoid, tags);
       return Bindings.set(setKey, elementKey, element, weak, tags);
     });

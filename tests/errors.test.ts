@@ -27,13 +27,13 @@ describe('Error Handling', () => {
     // Use factories to define circular dependencies at DI level
     const module = new ModuleDef()
       .make(ServiceA).from().factory(
-        Functoid.fromFunction((b: any) => new ServiceA(b)).withTypes([ServiceB])
+        Functoid.fromFunctionUnsafe((b: any) => new ServiceA(b)).withTypes([ServiceB])
       )
       .make(ServiceB).from().factory(
-        Functoid.fromFunction((c: any) => new ServiceB(c)).withTypes([ServiceC])
+        Functoid.fromFunctionUnsafe((c: any) => new ServiceB(c)).withTypes([ServiceC])
       )
       .make(ServiceC).from().factory(
-        Functoid.fromFunction((a: any) => new ServiceC(a)).withTypes([ServiceA])
+        Functoid.fromFunctionUnsafe((a: any) => new ServiceC(a)).withTypes([ServiceA])
       );
 
     const injector = new Injector();
@@ -105,13 +105,13 @@ describe('Error Handling', () => {
 
     const module = new ModuleDef()
       .make(ServiceA).from().factory(
-        Functoid.fromFunction((b: any) => new ServiceA(b)).withTypes([ServiceB])
+        Functoid.fromFunctionUnsafe((b: any) => new ServiceA(b)).withTypes([ServiceB])
       )
       .make(ServiceB).from().factory(
-        Functoid.fromFunction((c: any) => new ServiceB(c)).withTypes([ServiceC])
+        Functoid.fromFunctionUnsafe((c: any) => new ServiceB(c)).withTypes([ServiceC])
       )
       .make(ServiceC).from().factory(
-        Functoid.fromFunction((a: any) => new ServiceC(a)).withTypes([ServiceA])
+        Functoid.fromFunctionUnsafe((a: any) => new ServiceC(a)).withTypes([ServiceA])
       );
 
     const injector = new Injector();

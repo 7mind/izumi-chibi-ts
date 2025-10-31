@@ -183,7 +183,7 @@ export class Functoid<T = any> {
    * Note: Without reflect-metadata, you must manually specify types using .withTypes() or .withParams()
    * if the function has parameters.
    */
-  static fromFunction<T>(fn: (...args: any[]) => T): Functoid<T> {
+  static fromFunctionUnsafe<T>(fn: (...args: any[]) => T): Functoid<T> {
     const functoid = new Functoid(fn);
     functoid.dependencies = [];
     return functoid;
@@ -191,21 +191,27 @@ export class Functoid<T = any> {
 
   /**
    * Create a type-safe Functoid from a factory function with explicit parameter types.
-   * TypeScript validates at compile-time that the types match the function parameters.
+   * TypeScript infers parameter types from the types array, eliminating duplication.
    *
    * Example:
    *   const functoid = Functoid.make(
    *     [Database, Config] as const,
-   *     (db: Database, config: Config) => new UserService(db, config)
+   *     (db, config) => new UserService(db, config)
    *   );
+   *   // TypeScript automatically infers: db: Database, config: Config
    *
-   * Note: Use 'as const' on the types array to get compile-time validation.
+   * Benefits:
+   * - No type duplication: types are specified once in the array
+   * - Compile-time validation: ensures parameter count and order match
+   * - Full type safety: TypeScript infers correct types for function parameters
    *
-   * Compile-time validation:
-   *   Functoid.make([Database] as const, (db: Database, cfg: Config) => ...)  // ✗ Error: wrong count
-   *   Functoid.make([Config, Database] as const, (db: Database, cfg: Config) => ...)  // ✗ Error: wrong order
+   * Note: Use 'as const' on the types array to enable type inference and validation.
+   *
+   * Compile-time validation examples:
+   *   Functoid.make([Database] as const, (db, cfg) => ...)  // ✗ Error: expected 1 param, got 2
+   *   Functoid.make([Config, Database] as const, (db, cfg) => ...)  // ✗ Error: db is Config, not Database
    */
-  static make<const Args extends readonly (abstract new (...args: any[]) => any)[], R>(
+  static fromFunction<const Args extends readonly (abstract new (...args: any[]) => any)[], R>(
     types: Args,
     fn: (...params: InstanceTypes<Args>) => R
   ): Functoid<R> {

@@ -25,9 +25,9 @@ describe('Functoid.make - Type-safe factory functions', () => {
 
   it('should create a type-safe Functoid with compile-time validation', () => {
     // Type-safe: TypeScript validates that function params match the types array
-    const functoid = Functoid.make(
+    const functoid = Functoid.fromFunction(
       [Database, Config] as const,
-      (db: Database, config: Config) => new UserService(db, config)
+      (db, config) => new UserService(db, config)
     );
 
     const deps = functoid.getDependencies();
@@ -37,9 +37,9 @@ describe('Functoid.make - Type-safe factory functions', () => {
   });
 
   it('should work in a full DI context', () => {
-    const functoid = Functoid.make(
+    const functoid = Functoid.fromFunction(
       [Database, Config] as const,
-      (db: Database, config: Config) => new UserService(db, config)
+      (db, config) => new UserService(db, config)
     );
 
     const module = new ModuleDef()
@@ -70,9 +70,9 @@ describe('Functoid.make - Type-safe factory functions', () => {
       constructor(public readonly port: number = 3000) {}
     }
 
-    const functoid = Functoid.make(
+    const functoid = Functoid.fromFunction(
       [HostConfig, PortConfig] as const,
-      (hostCfg: HostConfig, portCfg: PortConfig) => ({
+      (hostCfg, portCfg) => ({
         host: hostCfg.host,
         port: portCfg.port,
         url: `http://${hostCfg.host}:${portCfg.port}`
@@ -94,9 +94,9 @@ describe('Functoid.make - Type-safe factory functions', () => {
   });
 
   it('should support single parameter', () => {
-    const functoid = Functoid.make(
+    const functoid = Functoid.fromFunction(
       [Database] as const,
-      (db: Database) => ({ database: db, initialized: true })
+      (db) => ({ database: db, initialized: true })
     );
 
     const deps = functoid.getDependencies();
@@ -105,7 +105,7 @@ describe('Functoid.make - Type-safe factory functions', () => {
   });
 
   it('should support no parameters', () => {
-    const functoid = Functoid.make(
+    const functoid = Functoid.fromFunction(
       [] as const,
       () => ({ timestamp: Date.now() })
     );
@@ -116,27 +116,17 @@ describe('Functoid.make - Type-safe factory functions', () => {
 
   // These would cause TypeScript compile errors (commented out for test to run):
 
-  // it('should reject wrong parameter count', () => {
-  //   // ✗ Compile error: Expected 2 params, got 1
-  //   Functoid.make(
-  //     [Database],
-  //     (db: Database, config: Config) => new UserService(db, config)
-  //   );
-  // });
-
-  // it('should reject wrong parameter order', () => {
-  //   // ✗ Compile error: Config is not assignable to Database
-  //   Functoid.make(
-  //     [Config, Database],
-  //     (db: Database, config: Config) => new UserService(db, config)
-  //   );
-  // });
-
-  // it('should reject wrong parameter types', () => {
-  //   // ✗ Compile error: String is not assignable to Database
-  //   Functoid.make(
-  //     [String, Config],
-  //     (db: Database, config: Config) => new UserService(db, config)
-  //   );
-  // });
+  // These would cause TypeScript compile errors:
+  //
+  // // ✗ Compile error: Expected 2 params, got 1
+  // Functoid.make(
+  //   [Database] as const,
+  //   (db, config) => new UserService(db, config)
+  // );
+  //
+  // // ✗ Compile error: Wrong parameter order - Config is not assignable to Database
+  // Functoid.make(
+  //   [Config, Database] as const,
+  //   (db, config) => new UserService(db, config)
+  // );
 });

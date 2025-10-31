@@ -12,7 +12,7 @@ class Database {
 
 describe('Functoid', () => {
   it('should extract dependencies from a function', () => {
-    const functoid = Functoid.fromFunction(
+    const functoid = Functoid.fromFunctionUnsafe(
       (config: Config, db: Database) => {
         return { config, db };
       }
@@ -25,7 +25,7 @@ describe('Functoid', () => {
   });
 
   it('should support manual annotation of parameter IDs', () => {
-    const functoid = Functoid.fromFunction(
+    const functoid = Functoid.fromFunctionUnsafe(
       (config: Config, db: Database) => {
         return { config, db };
       }
@@ -41,7 +41,7 @@ describe('Functoid', () => {
   });
 
   it('should execute with provided arguments', () => {
-    const functoid = Functoid.fromFunction(
+    const functoid = Functoid.fromFunctionUnsafe(
       (a: number, b: number) => a + b
     );
 
@@ -57,7 +57,7 @@ describe('Functoid', () => {
   });
 
   it('should support mapping functoid results', () => {
-    const functoid = Functoid.fromFunction(
+    const functoid = Functoid.fromFunctionUnsafe(
       (a: number, b: number) => a + b
     ).map(result => result * 2);
 
@@ -73,7 +73,7 @@ describe('Functoid', () => {
     const module = new ModuleDef()
       .make(Config).from().value(new Config('10'))
       .make(ComputedValue).from().factory(
-        Functoid.fromFunction((config: Config) => {
+        Functoid.fromFunctionUnsafe((config: Config) => {
           return new ComputedValue(parseInt(config.value) * 2);
         }).withTypes([Config])
       );
@@ -96,7 +96,7 @@ describe('Functoid', () => {
       .make(Config).named('primary').from().value(new Config('primary-value'))
       .make(Config).named('secondary').from().value(new Config('secondary-value'))
       .make(Service).from().factory(
-        Functoid.fromFunction((p: Config, s: Config) => {
+        Functoid.fromFunctionUnsafe((p: Config, s: Config) => {
           return new Service(p, s);
         }).withParams([
           { type: Config, id: 'primary' },
