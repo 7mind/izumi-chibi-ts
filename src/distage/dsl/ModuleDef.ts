@@ -5,6 +5,17 @@ import { Functoid } from '@/distage/core/Functoid';
 import { getConstructorTypes } from '@/distage/model/Reflected';
 
 /**
+ * Helper type to extract instance types from a tuple of constructor types.
+ * Maps [typeof Database, typeof Config] -> [Database, Config]
+ */
+type InstanceTypes<T extends readonly any[]> = T extends readonly [infer First, ...infer Rest]
+  ? [
+      First extends abstract new (...args: any[]) => infer R ? R : First,
+      ...InstanceTypes<Rest>
+    ]
+  : [];
+
+/**
  * Builder for specifying the source of a binding (like izumi-chibi-py's .using())
  */
 export class BindingFromBuilder<T> {
@@ -52,6 +63,39 @@ export class BindingFromBuilder<T> {
         factoryOrFunctoid instanceof Functoid
           ? factoryOrFunctoid
           : Functoid.fromFunctionUnsafe(factoryOrFunctoid);
+      return Bindings.factory(key, functoid, tags);
+    });
+  }
+
+  /**
+   * Bind to a pre-constructed Functoid
+   *
+   * Example:
+   *   const myFunctoid = Functoid.fromFunction([Database, Config] as const, (db, cfg) => ...);
+   *   module.make(UserService).from().functoid(myFunctoid)
+   */
+  functoid<R extends T>(functoid: Functoid<R>): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) => {
+      return Bindings.factory(key, functoid, tags);
+    });
+  }
+
+  /**
+   * Bind to a type-safe factory function with explicit parameter types.
+   * This is a shorthand for Functoid.fromFunction().
+   *
+   * Example:
+   *   module.make(UserService).from().func(
+   *     [Database, Config] as const,
+   *     (db, cfg) => new UserService(db, cfg)
+   *   )
+   */
+  func<const Args extends readonly (abstract new (...args: any[]) => any)[], R extends T>(
+    types: Args,
+    fn: (...params: InstanceTypes<Args>) => R
+  ): ModuleDef {
+    return this.bindingBuilder.finalize((key, tags) => {
+      const functoid = Functoid.fromFunction(types, fn);
       return Bindings.factory(key, functoid, tags);
     });
   }
@@ -205,6 +249,41 @@ export class SetBindingFromBuilder<T> {
         factoryOrFunctoid instanceof Functoid
           ? factoryOrFunctoid
           : Functoid.fromFunctionUnsafe(factoryOrFunctoid);
+      const element = Bindings.factory(elementKey, functoid, tags);
+      return Bindings.set(setKey, elementKey, element, weak, tags);
+    });
+  }
+
+  /**
+   * Add a pre-constructed Functoid to the set
+   *
+   * Example:
+   *   const myFunctoid = Functoid.fromFunction([Database] as const, (db) => new Plugin(db));
+   *   module.many(Plugin).from().functoid(myFunctoid)
+   */
+  functoid<R extends T>(functoid: Functoid<R>): ModuleDef {
+    return this.setBuilder.finalizeElement((setKey, elementKey, tags, weak) => {
+      const element = Bindings.factory(elementKey, functoid, tags);
+      return Bindings.set(setKey, elementKey, element, weak, tags);
+    });
+  }
+
+  /**
+   * Add a type-safe factory function to the set with explicit parameter types.
+   * This is a shorthand for Functoid.fromFunction().
+   *
+   * Example:
+   *   module.many(Plugin).from().func(
+   *     [Database] as const,
+   *     (db) => new AuthPlugin(db)
+   *   )
+   */
+  func<const Args extends readonly (abstract new (...args: any[]) => any)[], R extends T>(
+    types: Args,
+    fn: (...params: InstanceTypes<Args>) => R
+  ): ModuleDef {
+    return this.setBuilder.finalizeElement((setKey, elementKey, tags, weak) => {
+      const functoid = Functoid.fromFunction(types, fn);
       const element = Bindings.factory(elementKey, functoid, tags);
       return Bindings.set(setKey, elementKey, element, weak, tags);
     });
