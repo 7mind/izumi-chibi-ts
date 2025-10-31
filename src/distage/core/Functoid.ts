@@ -3,6 +3,17 @@ import { getAllParameterIds } from '@/distage/model/Id';
 import { getConstructorTypes } from '@/distage/model/Reflected';
 
 /**
+ * Helper type to extract instance types from a tuple of constructor types.
+ * Maps [typeof Database, typeof Config] -> [Database, Config]
+ */
+type InstanceTypes<T extends readonly any[]> = T extends readonly [infer First, ...infer Rest]
+  ? [
+      First extends abstract new (...args: any[]) => infer R ? R : First,
+      ...InstanceTypes<Rest>
+    ]
+  : [];
+
+/**
  * Represents information about a function parameter
  */
 export interface ParameterInfo {
@@ -175,6 +186,31 @@ export class Functoid<T = any> {
   static fromFunction<T>(fn: (...args: any[]) => T): Functoid<T> {
     const functoid = new Functoid(fn);
     functoid.dependencies = [];
+    return functoid;
+  }
+
+  /**
+   * Create a type-safe Functoid from a factory function with explicit parameter types.
+   * TypeScript validates at compile-time that the types match the function parameters.
+   *
+   * Example:
+   *   const functoid = Functoid.make(
+   *     [Database, Config] as const,
+   *     (db: Database, config: Config) => new UserService(db, config)
+   *   );
+   *
+   * Note: Use 'as const' on the types array to get compile-time validation.
+   *
+   * Compile-time validation:
+   *   Functoid.make([Database] as const, (db: Database, cfg: Config) => ...)  // ✗ Error: wrong count
+   *   Functoid.make([Config, Database] as const, (db: Database, cfg: Config) => ...)  // ✗ Error: wrong order
+   */
+  static make<const Args extends readonly (abstract new (...args: any[]) => any)[], R>(
+    types: Args,
+    fn: (...params: InstanceTypes<Args>) => R
+  ): Functoid<R> {
+    const functoid = new Functoid(fn as (...args: any[]) => R);
+    functoid.dependencies = (types as readonly any[]).map(type => DIKey.of(type));
     return functoid;
   }
 

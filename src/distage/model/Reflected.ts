@@ -5,9 +5,12 @@ const CONSTRUCTOR_TYPES_SYMBOL = Symbol('distage:constructorTypes');
  * Helper type to extract instance types from a tuple of constructor types.
  * Maps [typeof Database, typeof Config] -> [Database, Config]
  */
-type InstanceTypes<T extends readonly any[]> = {
-  [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R ? R : T[K]
-};
+type InstanceTypes<T extends readonly any[]> = T extends readonly [infer First, ...infer Rest]
+  ? [
+      First extends abstract new (...args: any[]) => infer R ? R : First,
+      ...InstanceTypes<Rest>
+    ]
+  : [];
 
 /**
  * Type-safe decorator to mark a class as injectable and store its constructor parameter types.
