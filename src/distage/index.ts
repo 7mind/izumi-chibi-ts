@@ -29,7 +29,7 @@ export { ModuleDef, BindingBuilder, SetBindingBuilder } from '@/distage/dsl/Modu
 export { DIKey, ID_METADATA_KEY, PARAM_IDS_METADATA_KEY, TypeTag } from '@/distage/model/DIKey';
 export type { Callable, TypeTag as TypeTagType, PrimitiveType } from '@/distage/model/DIKey';
 export { Id, getParameterId, getAllParameterIds } from '@/distage/model/Id';
-export { Reflected, getConstructorTypes } from '@/distage/model/Reflected';
+export { Reflected, ApplyReflection, getConstructorTypes } from '@/distage/model/Reflected';
 export { Axis, AxisPoint, Activation, BindingTags } from '@/distage/model/Activation';
 export { BindingKind, Bindings } from '@/distage/model/Binding';
 export type {

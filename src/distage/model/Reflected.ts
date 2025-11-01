@@ -79,8 +79,52 @@ export function Reflected<Args extends readonly (abstract new (...args: any[]) =
 }
 
 /**
- * Get the constructor parameter types stored by @Injectable()
+ * Get the constructor parameter types stored by @Reflected() or @ApplyReflection()
  */
 export function getConstructorTypes(target: any): any[] | undefined {
   return target[CONSTRUCTOR_TYPES_SYMBOL];
+}
+
+/**
+ * Function to add reflection metadata to third-party classes.
+ * Use this when you cannot modify the original class (e.g., from a library).
+ *
+ * Example:
+ *   // Third-party class you can't modify
+ *   class ThirdPartyService {
+ *     constructor(db: Database, config: Config) {}
+ *   }
+ *
+ *   // Add metadata via companion function
+ *   ApplyReflection(ThirdPartyService, Database, Config);
+ *
+ *   // Now you can use it without .withDeps()
+ *   module.make(ThirdPartyService).from().type(ThirdPartyService)
+ *
+ * The function stores metadata on the class constructor, making it available
+ * for dependency injection just like @Reflected.
+ */
+export function ApplyReflection<
+  C extends new (...args: any[]) => any,
+  Args extends readonly (abstract new (...args: any[]) => any)[]
+>(
+  targetClass: C,
+  ...types: Args
+): void {
+  // Validate parameter count at runtime as a safety check
+  const expectedLength = targetClass.length;
+  if (types.length !== expectedLength) {
+    throw new Error(
+      `ApplyReflection: Parameter count mismatch for ${targetClass.name}. ` +
+      `Expected ${expectedLength} types, got ${types.length}.`
+    )
+  }
+
+  // Store the parameter types on the target class
+  Object.defineProperty(targetClass, CONSTRUCTOR_TYPES_SYMBOL, {
+    value: types,
+    writable: false,
+    enumerable: false,
+    configurable: false,
+  });
 }
