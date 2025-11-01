@@ -27,20 +27,29 @@ export interface ParameterInfo {
  * It's the core abstraction in distage for representing dependency constructors.
  *
  * Functoids can be created from:
- * - Regular functions
+ * - Regular functions (sync or async)
  * - Class constructors
  * - Other functoids (for composition)
  *
  * They support both automatic dependency resolution via reflect-metadata
  * and manual annotation for cases where reflection is not sufficient.
+ *
+ * Async support:
+ * - Async factories return Promise<T>
+ * - The DI container detects async functoids and handles them appropriately
+ * - Use produceAsync() when your graph contains async factories
  */
 export class Functoid<T = any> {
   private dependencies: DIKey[] = [];
+  private readonly isAsync: boolean;
 
   constructor(
-    private readonly fn: (...args: any[]) => T,
+    private readonly fn: (...args: any[]) => T | Promise<T>,
     private readonly context?: any,
-  ) {}
+  ) {
+    // Detect if function is async by checking if it's an AsyncFunction
+    this.isAsync = fn.constructor.name === 'AsyncFunction';
+  }
 
   /**
    * Manually set dependencies as DIKeys.
@@ -123,9 +132,17 @@ export class Functoid<T = any> {
   }
 
   /**
-   * Execute the functoid with the given arguments
+   * Check if this functoid is async
    */
-  execute(args: any[]): T {
+  isAsyncFunctoid(): boolean {
+    return this.isAsync;
+  }
+
+  /**
+   * Execute the functoid with the given arguments.
+   * Returns T for sync functions, Promise<T> for async functions.
+   */
+  execute(args: any[]): T | Promise<T> {
     if (this.context) {
       return this.fn.apply(this.context, args);
     }
@@ -135,7 +152,7 @@ export class Functoid<T = any> {
   /**
    * Get the underlying function
    */
-  getFunction(): (...args: any[]) => T {
+  getFunction(): (...args: any[]) => T | Promise<T> {
     return this.fn;
   }
 
@@ -193,6 +210,10 @@ export class Functoid<T = any> {
    * Create a type-safe Functoid from a factory function with explicit parameter types.
    * TypeScript infers parameter types from the types array, eliminating duplication.
    *
+   * Supports both synchronous and asynchronous factories:
+   * - Sync: (db, config) => new UserService(db, config)
+   * - Async: async (db, config) => { await ...; return new UserService(db, config); }
+   *
    * Example:
    *   const functoid = Functoid.fromFunction(
    *     [Database, Config],
@@ -212,9 +233,9 @@ export class Functoid<T = any> {
    */
   static fromFunction<const Args extends readonly (abstract new (...args: any[]) => any)[], R>(
     types: Args,
-    fn: (...params: InstanceTypes<Args>) => R
+    fn: (...params: InstanceTypes<Args>) => R | Promise<R>
   ): Functoid<R> {
-    const functoid = new Functoid(fn as (...args: any[]) => R);
+    const functoid = new Functoid(fn as (...args: any[]) => R | Promise<R>);
     functoid.dependencies = (types as readonly any[]).map(type => DIKey.of(type));
     return functoid;
   }
@@ -229,12 +250,17 @@ export class Functoid<T = any> {
   }
 
   /**
-   * Map the result of this functoid
+   * Map the result of this functoid.
+   * For async functoids, the mapper is applied after the promise resolves.
    */
   map<R>(mapper: (value: T) => R): Functoid<R> {
     const mapped = new Functoid((...args: any[]) => {
       const result = this.execute(args);
-      return mapper(result);
+      // If the result is a promise, map after it resolves
+      if (result instanceof Promise) {
+        return result.then(mapper);
+      }
+      return mapper(result as T);
     });
     // Copy dependencies from the original functoid
     mapped.dependencies = [...this.dependencies];

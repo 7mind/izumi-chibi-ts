@@ -32,10 +32,20 @@ export interface InjectorOptions {
  * The Injector is the main entry point for distage.
  * It coordinates the Planner and Producer to build a dependency injection container.
  *
+ * Supports both synchronous and asynchronous production:
+ * - produce() for synchronous dependency graphs
+ * - produceAsync() for graphs containing async factories
+ *
  * Usage:
  *   const injector = new Injector();
+ *
+ *   // Synchronous
  *   const locator = injector.produce(module, [DIKey.of(MyService)]);
  *   const service = locator.get(DIKey.of(MyService));
+ *
+ *   // Asynchronous
+ *   const locator = await injector.produceAsync(module, [DIKey.of(AsyncService)]);
+ *   const service = locator.get(DIKey.of(AsyncService));
  */
 export class Injector {
   private readonly planner: Planner;
@@ -116,6 +126,64 @@ export class Injector {
     options: InjectorOptions = {},
   ): T {
     return this.produceOne(module, DIKey.named(type, id), options);
+  }
+
+  // ============================================================================
+  // Async versions
+  // ============================================================================
+
+  /**
+   * Produce a Locator from a plan asynchronously
+   */
+  async produceFromPlanAsync(plan: Plan, parentLocator?: Locator): Promise<Locator> {
+    return await this.producer.produceAsync(plan, parentLocator);
+  }
+
+  /**
+   * Plan and produce a Locator asynchronously in one step
+   */
+  async produceAsync(
+    module: ModuleDef,
+    roots: DIKey[],
+    options: InjectorOptions = {},
+  ): Promise<Locator> {
+    const plan = this.plan(module, roots, options);
+    return await this.produceFromPlanAsync(plan, options.parentLocator);
+  }
+
+  /**
+   * Convenience method to produce with a single root asynchronously
+   */
+  async produceOneAsync<T>(
+    module: ModuleDef,
+    root: DIKey<T>,
+    options: InjectorOptions = {},
+  ): Promise<T> {
+    const locator = await this.produceAsync(module, [root], options);
+    return locator.get(root);
+  }
+
+  /**
+   * Convenience method to produce with a type asynchronously
+   */
+  async produceByTypeAsync<T>(
+    module: ModuleDef,
+    type: Callable<T>,
+    options: InjectorOptions = {},
+  ): Promise<T> {
+    return await this.produceOneAsync(module, DIKey.of(type), options);
+  }
+
+  /**
+   * Convenience method to produce with a type and ID asynchronously
+   */
+  async produceByTypeAndIdAsync<T>(
+    module: ModuleDef,
+    type: Callable<T>,
+    id: string,
+    options: InjectorOptions = {},
+  ): Promise<T> {
+    return await this.produceOneAsync(module, DIKey.named(type, id), options);
   }
 
   /**

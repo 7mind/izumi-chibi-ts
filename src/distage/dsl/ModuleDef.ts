@@ -84,15 +84,28 @@ export class BindingFromBuilder<T> {
    * Bind to a type-safe factory function with explicit parameter types.
    * This is a shorthand for Functoid.fromFunction().
    *
+   * Supports both synchronous and asynchronous factories.
+   *
    * Example:
+   *   // Synchronous
    *   module.make(UserService).from().func(
    *     [Database, Config],
    *     (db, cfg) => new UserService(db, cfg)
    *   )
+   *
+   *   // Asynchronous
+   *   module.make(Database).from().func(
+   *     [],
+   *     async () => {
+   *       const db = new Database();
+   *       await db.connect();
+   *       return db;
+   *     }
+   *   )
    */
   func<const Args extends readonly (abstract new (...args: any[]) => any)[], R extends T>(
     types: Args,
-    fn: (...params: InstanceTypes<Args>) => R
+    fn: (...params: InstanceTypes<Args>) => R | Promise<R>
   ): ModuleDef {
     return this.bindingBuilder.finalize((key, tags) => {
       const functoid = Functoid.fromFunction(types, fn);
