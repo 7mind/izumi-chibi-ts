@@ -54,7 +54,6 @@ jobs:
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
-        if: success()
         with:
-          token: ${{ secrets.TOKEN_CODECOV }}
+          token: ${{ env.TOKEN_CODECOV }}
           fail_ci_if_error: false
