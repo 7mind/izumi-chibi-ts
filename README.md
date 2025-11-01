@@ -8,7 +8,7 @@
 A TypeScript re-implementation of some core concepts from Scala's [Izumi Project](https://github.com/7mind/izumi),
 `distage` staged dependency injection library in particular.
 
-The port was done by guiding Claude, at this point no manual reviews were done.
+The port was done by guiding Claude with partial manual reviews.
 
 At this point the project is not battle-tested. Expect dragons, landmines and varying mileage.
 
