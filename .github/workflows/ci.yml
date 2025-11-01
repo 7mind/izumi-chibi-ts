@@ -46,9 +46,15 @@ jobs:
       - name: Run tests with coverage
         run: nix develop --command npm run test:coverage
 
+      - uses: bitwarden/sm-action@v2
+        with:
+          access_token: ${{ secrets.TOKEN_BITWARDEN_SM }}
+          secrets: |
+            5e21669e-48b4-49ce-82f0-b193010a2ded > TOKEN_CODECOV
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         if: success()
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.TOKEN_CODECOV }}
           fail_ci_if_error: false

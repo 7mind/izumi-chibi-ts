@@ -1,7 +1,7 @@
 # Chibi Izumi for TypeScript (distage)
 
 [![CI](https://github.com/7mind/izumi-chibi-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/7mind/izumi-chibi-ts/actions/workflows/ci.yml)
-[![npm version](https://badge.fury.io/js/izumi-chibi-ts.svg)](https://www.npmjs.com/package/izumi-chibi-ts)
+[![npm version](https://badge.fury.io/js/%40izumi-framework%2Fizumi-chibi-ts.svg)](https://www.npmjs.com/package/@izumi-framework/izumi-chibi-ts)
 [![codecov](https://codecov.io/gh/7mind/izumi-chibi-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/7mind/izumi-chibi-ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -30,7 +30,7 @@ distage brings the power of distage's staged dependency injection to TypeScript:
 ## Installation
 
 ```bash
-npm install distage
+npm install @izumi-framework/izumi-chibi-ts
 ```
 
 Make sure to enable the following in your `tsconfig.json`:
