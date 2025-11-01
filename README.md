@@ -14,6 +14,17 @@ At this point the project is not battle-tested. Expect dragons, landmines and va
 
 Sibling project: [izumi-chibi-py](https://github.com/7mind/izumi-chibi-py).
 
+## Other DI implementations for TypeScript/JavaScript
+
+| Library | Staged DI | Type Safety | Axis Support | Decorator-based | Notes |
+|---------|-----------|-------------|--------------|-----------------|-------|
+| **izumi-chibi-ts** | ✅ | ✅ | ✅ | Optional | Planner/Producer separation, parallel async |
+| [InversifyJS](https://github.com/inversify/InversifyJS) | ❌ | ✅ | ❌ | ✅ | Single-pass, mature ecosystem |
+| [TSyringe](https://github.com/microsoft/tsyringe) | ❌ | ✅ | ❌ | ✅ | Lightweight, constructor injection focused |
+| [TypeDI](https://github.com/typestack/typedi) | ❌ | ✅ | ❌ | ✅ | Container-based, property injection |
+| [NestJS DI](https://docs.nestjs.com/providers) | ❌ | ✅ | ❌ | ✅ | Framework-specific, module-scoped |
+| [Awilix](https://github.com/jeffijoe/awilix) | ❌ | ⚠️ | ❌ | ❌ | Convention-based, flexible but less safe |
+
 ## Features
 
 distage brings the power of distage's staged dependency injection to TypeScript:
@@ -607,6 +618,7 @@ distage implements the core concepts of distage with TypeScript-specific adaptat
 
 - [distage](https://izumi.7mind.io/distage/) - Scala's staged dependency injection
 - [izumi-chibi-py](https://github.com/7mind/izumi-chibi-py) - Python port of distage
+
 
 ## License
 
