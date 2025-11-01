@@ -16,14 +16,18 @@ Sibling project: [izumi-chibi-py](https://github.com/7mind/izumi-chibi-py).
 
 ## Other DI implementations for TypeScript/JavaScript
 
-| Library | Staged DI | Type Safety | Axis Support | Decorator-based | Notes |
-|---------|-----------|-------------|--------------|-----------------|-------|
-| **izumi-chibi-ts** | ✅ | ✅ | ✅ | Optional | Planner/Producer separation, parallel async |
-| [InversifyJS](https://github.com/inversify/InversifyJS) | ❌ | ✅ | ❌ | ✅ | Single-pass, mature ecosystem |
-| [TSyringe](https://github.com/microsoft/tsyringe) | ❌ | ✅ | ❌ | ✅ | Lightweight, constructor injection focused |
-| [TypeDI](https://github.com/typestack/typedi) | ❌ | ✅ | ❌ | ✅ | Container-based, property injection |
-| [NestJS DI](https://docs.nestjs.com/providers) | ❌ | ✅ | ❌ | ✅ | Framework-specific, module-scoped |
-| [Awilix](https://github.com/jeffijoe/awilix) | ❌ | ⚠️ | ❌ | ❌ | Convention-based, flexible but less safe |
+| Library | Non-invasive | Staged DI | Config Axes | Async | Lifecycle | Factory | Type Safety | Set Bindings |
+|---------|--------------|-----------|-------------|-------|-----------|---------|-------------|--------------|
+| **izumi-chibi-ts** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [InversifyJS](https://github.com/inversify/InversifyJS) | ⚠️ | ❌ | ❌ | ✅ | ⚠️ | ✅ | ✅ | ✅ |
+| [TSyringe](https://github.com/microsoft/tsyringe) | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ |
+| [TypeDI](https://github.com/typestack/typedi) | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ⚠️ |
+| [NestJS DI](https://docs.nestjs.com/providers) | ⚠️ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
+| [Awilix](https://github.com/jeffijoe/awilix) | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ | ❌ |
+| [typed-inject](https://github.com/nicojs/typed-inject) | ✅ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ |
+| [BottleJS](https://github.com/young-steveo/bottlejs) | ✅ | ❌ | ❌ | ❌ | ⚠️ | ✅ | ❌ | ❌ |
+
+**Legend:** ✅ = Full support | ⚠️ = Partial/limited | ❌ = Not supported
 
 ## Features
 
