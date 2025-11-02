@@ -1,6 +1,6 @@
 {
   "name": "@izumi-framework/izumi-chibi-ts",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Chibi Izumi - A TypeScript replica of Scala's distage-core library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
