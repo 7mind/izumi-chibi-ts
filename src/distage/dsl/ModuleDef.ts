@@ -115,10 +115,13 @@ export class BindingFromBuilder<T> {
 
   /**
    * Create an alias to another binding
+   * Can accept either a type with optional ID, or a DIKey directly
    */
-  alias(targetType: Callable<T>, targetId?: string): ModuleDef {
+  alias(target: Callable<T> | DIKey<T>, targetId?: string): ModuleDef {
     return this.bindingBuilder.finalize((key, tags) => {
-      const targetKey = targetId ? DIKey.named(targetType, targetId) : DIKey.of(targetType);
+      const targetKey = target instanceof DIKey
+        ? target
+        : (targetId ? DIKey.named(target, targetId) : DIKey.of(target));
       return Bindings.alias(key, targetKey, tags);
     });
   }
@@ -156,7 +159,7 @@ export class BindingBuilder<T> {
   private constructorTypes?: any[];
 
   constructor(
-    private readonly type: Callable<T>,
+    private readonly type: Callable<T> | symbol,
     private readonly module: ModuleDef,
   ) {}
 
@@ -206,9 +209,15 @@ export class BindingBuilder<T> {
    * Get the DIKey for this binding
    */
   private getKey(): DIKey<T> {
-    return this.currentId
-      ? DIKey.named(this.type, this.currentId)
-      : DIKey.of(this.type);
+    if (typeof this.type === 'symbol') {
+      return this.currentId
+        ? DIKey.namedToken(this.type, this.currentId)
+        : DIKey.token(this.type);
+    } else {
+      return this.currentId
+        ? DIKey.named(this.type as Callable<T>, this.currentId)
+        : DIKey.of(this.type as Callable<T>);
+    }
   }
 
   /**
@@ -312,7 +321,7 @@ export class SetBindingBuilder<T> {
   private weak: boolean = false;
 
   constructor(
-    private readonly elementType: Callable<T>,
+    private readonly elementType: Callable<T> | symbol,
     private readonly module: ModuleDef,
   ) {}
 
@@ -356,15 +365,27 @@ export class SetBindingBuilder<T> {
   }
 
   private getSetKey(): DIKey<Set<T>> {
-    return this.currentId
-      ? DIKey.namedSet(this.elementType, this.currentId)
-      : DIKey.set(this.elementType);
+    if (typeof this.elementType === 'symbol') {
+      return this.currentId
+        ? DIKey.namedSetToken(this.elementType, this.currentId)
+        : DIKey.setToken(this.elementType);
+    } else {
+      return this.currentId
+        ? DIKey.namedSet(this.elementType as Callable<T>, this.currentId)
+        : DIKey.set(this.elementType as Callable<T>);
+    }
   }
 
   private getElementKey(): DIKey<T> {
-    return this.currentId
-      ? DIKey.named(this.elementType, this.currentId)
-      : DIKey.of(this.elementType);
+    if (typeof this.elementType === 'symbol') {
+      return this.currentId
+        ? DIKey.namedToken(this.elementType, this.currentId)
+        : DIKey.token(this.elementType);
+    } else {
+      return this.currentId
+        ? DIKey.named(this.elementType as Callable<T>, this.currentId)
+        : DIKey.of(this.elementType as Callable<T>);
+    }
   }
 
   /**
@@ -409,16 +430,16 @@ export class ModuleDef {
   private bindings: AnyBinding[] = [];
 
   /**
-   * Start defining a binding for a type
+   * Start defining a binding for a type or symbol token
    */
-  make<T>(type: Callable<T>): BindingBuilder<T> {
+  make<T>(type: Callable<T> | symbol): BindingBuilder<T> {
     return new BindingBuilder(type, this);
   }
 
   /**
-   * Start defining a set binding
+   * Start defining a set binding for a type or symbol token
    */
-  many<T>(elementType: Callable<T>): SetBindingBuilder<T> {
+  many<T>(elementType: Callable<T> | symbol): SetBindingBuilder<T> {
     return new SetBindingBuilder(elementType, this);
   }
 

@@ -30,12 +30,14 @@ export type PrimitiveType =
  * Can be one of:
  * - CallableTag: A class, abstract class, or function
  * - PrimitiveTag: A JavaScript primitive type (String, Number, Boolean, Symbol, BigInt)
+ * - TokenTag: A Symbol instance used to represent an interface
  * - SetTag: A set of elements of a given type
  */
 export type TypeTag<T = any> =
   | { kind: 'tagged'; value: Tagged<T> }
   | { kind: 'callable'; value: Callable<T> }
   | { kind: 'primitive'; value: PrimitiveType; name: string }
+  | { kind: 'token'; value: symbol; description: string }
   | { kind: 'set'; elementTag: TypeTag<any> };
 
 /**
@@ -53,6 +55,12 @@ export const TypeTag = {
     return { kind: 'tagged', value: tagged };
   },
 
+  /**
+   * Create a TypeTag from a symbol token (for representing interfaces)
+   */
+  token<T>(token: symbol): TypeTag<T> {
+    return { kind: 'token', value: token, description: token.description || 'anonymous' };
+  },
 
   /**
    * Create a TypeTag for String type
@@ -100,6 +108,8 @@ export const TypeTag = {
         return `f:${tag.value.name || '<anonymous>'}`;
       case 'primitive':
         return `p:${tag.name}`;
+      case 'token':
+        return `token:${tag.description}`;
       case 'set':
         return `Set<${TypeTag.toString(tag.elementTag)}>`;
     }
@@ -140,6 +150,20 @@ export class DIKey<T = any> {
   }
 
   /**
+   * Create a DIKey for a symbol token (for interface bindings)
+   */
+  static token<T>(token: symbol): DIKey<T> {
+    return new DIKey(TypeTag.token(token));
+  }
+
+  /**
+   * Create a named DIKey for a symbol token
+   */
+  static namedToken<T>(token: symbol, id: string): DIKey<T> {
+    return new DIKey(TypeTag.token(token), id);
+  }
+
+  /**
    * Create a DIKey for a set binding
    */
   static set<T>(type: Callable<T>): DIKey<Set<T>> {
@@ -152,6 +176,22 @@ export class DIKey<T = any> {
    */
   static namedSet<T>(type: Callable<T>, id: string): DIKey<Set<T>> {
     const setTag = TypeTag.set(TypeTag.callable(type));
+    return new DIKey(setTag, id) as any;
+  }
+
+  /**
+   * Create a DIKey for a set binding using a symbol token
+   */
+  static setToken<T>(token: symbol): DIKey<Set<T>> {
+    const setTag = TypeTag.set(TypeTag.token(token));
+    return new DIKey(setTag) as any;
+  }
+
+  /**
+   * Create a DIKey for a named set binding using a symbol token
+   */
+  static namedSetToken<T>(token: symbol, id: string): DIKey<Set<T>> {
+    const setTag = TypeTag.set(TypeTag.token(token));
     return new DIKey(setTag, id) as any;
   }
 
@@ -183,6 +223,10 @@ export class DIKey<T = any> {
       case 'callable':
         return a.value === (b as typeof a).value;
       case 'primitive':
+        return a.value === (b as typeof a).value;
+      case 'token':
+        return a.value === (b as typeof a).value;
+      case 'tagged':
         return a.value === (b as typeof a).value;
       case 'set':
         return this.typeTagEquals(a.elementTag, (b as typeof a).elementTag);

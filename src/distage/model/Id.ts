@@ -11,8 +11,14 @@ const PARAMETER_IDS_SYMBOL = Symbol('distage:parameterIds');
  *   class MyService {
  *     constructor(@Id('primary') db: Database) {}
  *   }
+ *
+ * Can also accept symbols to identify interface tokens:
+ *   const ILogger = Symbol('ILogger');
+ *   class MyService {
+ *     constructor(@Id(ILogger) logger: ILogger) {}
+ *   }
  */
-export function Id(id: string) {
+export function Id(id: string | symbol) {
   return function (
     target: Object,
     propertyKey: string | symbol | undefined,
@@ -25,7 +31,7 @@ export function Id(id: string) {
     // Get or create the storage directly on the target (constructor for constructor params)
     let targetStorage = (target as any)[PARAMETER_IDS_SYMBOL];
     if (!targetStorage) {
-      targetStorage = new Map<string | symbol, Map<number, string>>();
+      targetStorage = new Map<string | symbol, Map<number, string | symbol>>();
       // Store it as a non-enumerable property
       Object.defineProperty(target, PARAMETER_IDS_SYMBOL, {
         value: targetStorage,
@@ -38,7 +44,7 @@ export function Id(id: string) {
     // Get or create the Map for this specific property/constructor
     let propertyIds = targetStorage.get(key);
     if (!propertyIds) {
-      propertyIds = new Map<number, string>();
+      propertyIds = new Map<number, string | symbol>();
       targetStorage.set(key, propertyIds);
     }
 
@@ -54,7 +60,7 @@ export function getParameterId(
   target: any,
   propertyKey: string | symbol,
   parameterIndex: number,
-): string | undefined {
+): string | symbol | undefined {
   const targetStorage = target[PARAMETER_IDS_SYMBOL];
   if (!targetStorage) return undefined;
 
@@ -68,7 +74,7 @@ export function getParameterId(
 export function getAllParameterIds(
   target: any,
   propertyKey: string | symbol = 'constructor',
-): Map<number, string> {
+): Map<number, string | symbol> {
   const targetStorage = target[PARAMETER_IDS_SYMBOL];
   if (!targetStorage) return new Map();
 

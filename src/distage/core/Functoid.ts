@@ -179,7 +179,13 @@ export class Functoid<T = any> {
         // Merge types with IDs
         functoid.dependencies = types.map((type, index) => {
           const id = paramIds.get(index);
-          return id ? DIKey.named(type, id) : DIKey.of(type);
+          if (id) {
+            // If the id is a symbol, treat it as a token, otherwise as a named binding
+            return typeof id === 'symbol'
+              ? DIKey.token(id)
+              : DIKey.named(type, id);
+          }
+          return DIKey.of(type);
         });
       } else {
         functoid.dependencies = types.map(type => DIKey.of(type));
