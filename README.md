@@ -14,21 +14,6 @@ At this point the project is not battle-tested. Expect dragons, landmines and va
 
 Sibling project: [izumi-chibi-py](https://github.com/7mind/izumi-chibi-py).
 
-## Other DI implementations for TypeScript/JavaScript
-
-| Library | Non-invasive | Staged DI | Config Axes | Async | Lifecycle | Factory | Type Safety | Set Bindings |
-|---------|--------------|-----------|-------------|-------|-----------|---------|-------------|--------------|
-| **izumi-chibi-ts** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| [InversifyJS](https://github.com/inversify/InversifyJS) | ⚠️ | ❌ | ❌ | ✅ | ⚠️ | ✅ | ✅ | ✅ |
-| [TSyringe](https://github.com/microsoft/tsyringe) | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ |
-| [TypeDI](https://github.com/typestack/typedi) | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ⚠️ |
-| [NestJS DI](https://docs.nestjs.com/providers) | ⚠️ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
-| [Awilix](https://github.com/jeffijoe/awilix) | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ | ❌ |
-| [typed-inject](https://github.com/nicojs/typed-inject) | ✅ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ |
-| [BottleJS](https://github.com/young-steveo/bottlejs) | ✅ | ❌ | ❌ | ❌ | ⚠️ | ✅ | ❌ | ❌ |
-
-**Legend:** ✅ = Full support | ⚠️ = Partial/limited | ❌ = Not supported
-
 ## Features
 
 distage brings the power of distage's staged dependency injection to TypeScript:
@@ -622,6 +607,23 @@ distage implements the core concepts of distage with TypeScript-specific adaptat
 
 - [distage](https://izumi.7mind.io/distage/) - Scala's staged dependency injection
 - [izumi-chibi-py](https://github.com/7mind/izumi-chibi-py) - Python port of distage
+
+## Other DI implementations for TypeScript/JavaScript
+
+This table is completely subjective.
+
+| Library | Non-invasive | Staged DI | Config Axes | Async | Lifecycle | Factory | Type Safety | Set Bindings |
+|---------|--------------|-----------|-------------|-------|-----------|---------|-------------|--------------|
+| **izumi-chibi-ts** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [InversifyJS](https://github.com/inversify/InversifyJS) | ⚠️ | ❌ | ❌ | ✅ | ⚠️ | ✅ | ✅ | ✅ |
+| [TSyringe](https://github.com/microsoft/tsyringe) | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ |
+| [TypeDI](https://github.com/typestack/typedi) | ⚠️ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ⚠️ |
+| [NestJS DI](https://docs.nestjs.com/providers) | ⚠️ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
+| [Awilix](https://github.com/jeffijoe/awilix) | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ | ❌ |
+| [typed-inject](https://github.com/nicojs/typed-inject) | ✅ | ❌ | ❌ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ |
+| [BottleJS](https://github.com/young-steveo/bottlejs) | ✅ | ❌ | ❌ | ❌ | ⚠️ | ✅ | ❌ | ❌ |
+
+**Legend:** ✅ = Full support | ⚠️ = Partial/limited | ❌ = Not supported
 
 
 ## License
